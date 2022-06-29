@@ -3,10 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 import re
-import matplotlib
-matplotlib.rcParams["savefig.dpi"] = 200
-from matplotlib import pyplot as plt
-plt.style.use('fivethirtyeight')
 import pickle as pkl
 import argparse
 
