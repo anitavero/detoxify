@@ -46,7 +46,7 @@ def run_zeroshot(data_path, model_name='bart', embeddings_file=None, batch_size=
     if len(columns) < 2 or columns[0] != 'id' or columns[1] != 'text':
         raise Exception(DATASET_DESCRIPTION)
     if save_to:
-        save_name = save_to
+        save_name = os.path.splitext(save_to)
     else:
         save_name = f'{model_name}_{dataset_name}_{"_".join(prompt_pattern.split())}'
     if candidate_labels == None:
@@ -58,14 +58,21 @@ def run_zeroshot(data_path, model_name='bart', embeddings_file=None, batch_size=
     print('Labels:')
     print('\n'.join(candidate_labels))
 
-    model = ZeroShotWrapper(candidate_labels, prompt_pattern, model_name, device)
-
     if embeddings_file:
-        print('Load embeddings')
+        print('Load embeddings')    #TODO: load texts, embeddings and prompt embeddings from separate files
         prompts, prompt_embeddings, texts, embeddings = load_embeddings(embeddings_file)
     else:
         embeddings = None
-    run(model, dataset, embeddings=embeddings, batch_size=batch_size, col_names=candidate_labels, save_name=save_name, save_embs=save_embeddings)
+        prompt_embeddings = None
+
+    model = ZeroShotWrapper(candidate_labels, prompt_pattern, model_name, device, prompt_embeddings)
+    run(model, 
+        dataset, 
+        embeddings=embeddings, 
+        batch_size=batch_size, 
+        col_names=candidate_labels, 
+        save_name=save_name, 
+        save_embs=save_embeddings)
 
 
 if __name__ == "__main__":

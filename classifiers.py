@@ -1,3 +1,4 @@
+from lib2to3.pgen2.token import OP
 import os
 
 import torch
@@ -29,7 +30,8 @@ class ZeroShotWrapper():
             t5-xl
             t5-xxl
      """
-    def __init__(self, candidate_labels, hypothesis_template, model_name: Optional[str]="bart", device: Optional[str]="cpu"):
+    def __init__(self, candidate_labels, hypothesis_template: str, model_name: Optional[str]="bart", 
+                 device: Optional[str]="cpu", hypotheses_embeddings: Optional[np.ndarray]=None):
         self.model_name = {"bart": "facebook/bart-large-mnli", 
                            "roberta": "joeddav/xlm-roberta-large-xnli",
                            "t5-small": 'google/t5-v1_1-small',
@@ -41,9 +43,12 @@ class ZeroShotWrapper():
         self.model = SentenceTransformer(self.model_name, device=self.device)
         self.candidate_labels = candidate_labels
         self.hypotheses = [hypothesis_template.format(l) for l in candidate_labels]
-        self.hypotheses_embeddings = self.model.encode(self.hypotheses, convert_to_tensor=True)
+        if hypotheses_embeddings:
+            self.hypotheses_embeddings = hypotheses_embeddings
+        else:
+            self.hypotheses_embeddings = self.model.encode(self.hypotheses, convert_to_tensor=True)
     
-    def predict(self, input_text: Union[str, List[str]], embeddings=None) -> dict:
+    def predict(self, input_text: Union[str, List[str]], embeddings:Optional[np.ndarray]=None) -> dict:
         if not isinstance(input_text, list):
             input_text = [input_text]
         if isinstance(embeddings, np.ndarray):
@@ -77,7 +82,8 @@ class T5TextWrapper:
 
 
 def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_embs=False):
-    dataset['text'].fillna('')
+    text_data = dataset['text'].fillna('')
+    ids = dataset['id']
 
     def batch(your_list, bs=1):
         l = len(your_list)
@@ -85,10 +91,12 @@ def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save
             yield your_list[i:min(i + bs, l)]
 
     # save empty csv file where the results will be saved
-    pd.DataFrame({'text': [], **{cl: [] for cl in col_names}}).to_csv(save_name, index=False)
+    pd.DataFrame({'id': [], **{cl: [] for cl in col_names}}).to_csv(f'results_{save_name}.csv', index=False)
     if save_embs:
-        embf = open(re.sub('.csv', '_embeddings.pkl', save_name), "ab")
-        pkl.dump({'prompts': model.hypotheses, 'embeddings': model.hypotheses_embeddings.cpu().numpy()}, embf, protocol=pkl.HIGHEST_PROTOCOL)
+        embf = open(f'embeddings_{save_name}.pkl', "ab")
+        pr_embf = open(f'prompt_embeddings_{save_name}.pkl', "ab")
+        pkl.dump({'prompts': model.hypotheses, 'embeddings': model.hypotheses_embeddings.cpu().numpy()}, pr_embf, protocol=pkl.HIGHEST_PROTOCOL)
+        pr_embf.close()
 
     cnt = 0
     if isinstance(embeddings, np.ndarray):
