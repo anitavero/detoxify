@@ -1,6 +1,5 @@
 import os
 
-import clip
 import torch
 from sentence_transformers import SentenceTransformer, util
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -77,7 +76,8 @@ class T5TextWrapper:
         return {"toxicity": predictions[:, 0], "safety": predictions[:, 1]}
 
 
-def run(model, text_data, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_embs=False):
+def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_embs=False):
+    dataset['text'].fillna('')
 
     def batch(your_list, bs=1):
         l = len(your_list)
