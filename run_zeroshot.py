@@ -38,7 +38,7 @@ def load_embeddings(data_file):
     return prompts, prompt_embeddings, texts, embeddings
 
 
-def run_zeroshot(data_path, model_name='bart', embeddings_file=None, batch_size=1, device='cpu', 
+def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, batch_size=1, device='cpu', 
                   prompt_pattern='This text is about {}', candidate_labels=None, save_to='', save_embeddings=False):
     dataset_name = os.path.basename(data_path).split('.')[0]
     dataset = pd.read_csv(data_path, sep=",")
@@ -46,9 +46,11 @@ def run_zeroshot(data_path, model_name='bart', embeddings_file=None, batch_size=
     if len(columns) < 2 or columns[0] != 'id' or columns[1] != 'text':
         raise Exception(DATASET_DESCRIPTION)
     if save_to:
-        save_name = os.path.splitext(save_to)
+        save_name = os.path.splitext(save_to)[0]
+        save_dir = os.path.dirname(save_to)
     else:
         save_name = f'{model_name}_{dataset_name}_{"_".join(prompt_pattern.split())}'
+        save_dir = os.path.dirname(data_path)
     if candidate_labels == None:
         try:
             candidate_labels = columns[2:]
@@ -72,6 +74,7 @@ def run_zeroshot(data_path, model_name='bart', embeddings_file=None, batch_size=
         batch_size=batch_size, 
         col_names=candidate_labels, 
         save_name=save_name, 
+        save_dir=save_dir,
         save_embs=save_embeddings)
 
 
