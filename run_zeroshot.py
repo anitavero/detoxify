@@ -21,27 +21,24 @@ def read_pickle_batches(file_name):
 
 def load_embeddings(data_file):
     embeddings = None
-    prompt_embeddings = None
-    texts = []
-    prompts = []
+    ids = []
+    metadata = None
     for batch in read_pickle_batches(data_file):
-        if 'prompts' in batch.keys():
-            prompts = batch['prompts']
-            prompt_embeddings = batch['embeddings']
+        ids += batch['ids']
+        bemb = batch['embeddings']
+        if not isinstance(embeddings, np.ndarray):
+            embeddings = bemb
         else:
-            texts += batch['tweets']
-            bemb = batch['embeddings']
-            if not isinstance(embeddings, np.ndarray):
-                embeddings = bemb
-            else:
-                embeddings = np.vstack((embeddings, bemb))
-    return prompts, prompt_embeddings, texts, embeddings
+            embeddings = np.vstack((embeddings, bemb))
+        if 'metadata' in batch.keys():
+            metadata = batch['metadata']
+    return ids, embeddings, metadata
 
 
-def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, batch_size=1, device='cpu', 
+def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, prompt_embeddings_file=None, batch_size=1, device='cpu', 
                   prompt_pattern='This text is about {}', candidate_labels=None, save_to='', save_embeddings=False):
     dataset_name = os.path.basename(data_path).split('.')[0]
-    dataset = pd.read_csv(data_path, sep=",")
+    dataset = pd.read_csv(data_path, sep=",", dtype={'id': 'string'})   # read ids as strings so they don't get messed up
     columns = list(dataset.columns)
     if len(columns) < 2 or columns[0] != 'id' or columns[1] != 'text':
         raise Exception(DATASET_DESCRIPTION)
@@ -56,15 +53,24 @@ def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, batch_s
             candidate_labels = columns[2:]
         except:
             raise Exception(f'Either candidate_labels should be given or {data_path} should include classnames as columns [2:]')
+    
     print('Prompt pattern:', prompt_pattern)
     print('Labels:')
     print('\n'.join(candidate_labels))
 
     if embeddings_file:
-        print('Load embeddings')    #TODO: load texts, embeddings and prompt embeddings from separate files
-        prompts, prompt_embeddings, texts, embeddings = load_embeddings(embeddings_file)
+        print('Load embeddings')
+        ids, embeddings, _ = load_embeddings(embeddings_file)
     else:
         embeddings = None
+    if prompt_embeddings_file:
+        print('Load prompt embeddings')
+        loaded_candidate_labels, prompt_embeddings, loaded_prompt_pattern = load_embeddings(prompt_embeddings_file)
+        if loaded_candidate_labels != candidate_labels:
+            raise Exception(f'Prompt embedding labels are not matching with given labels:\nPrompt embedding:{loaded_candidate_labels}\nGiven labels:{candidate_labels}')
+        if loaded_prompt_pattern != prompt_pattern: #TODO: handle default prompt_pattern?
+            raise Exception(f'Prompt embedding pattern is not matching with given pattern:\nPrompt embedding:{loaded_prompt_pattern}\nGiven labels:{prompt_pattern}')
+    else:
         prompt_embeddings = None
 
     model = ZeroShotWrapper(candidate_labels, prompt_pattern, model_name, device, prompt_embeddings)
@@ -100,6 +106,12 @@ if __name__ == "__main__":
         help="path to pretrained embeddings to load",
     )
     parser.add_argument(
+        "--prompt_embeddings_file",
+        default=None,
+        type=str,
+        help="path to pretrained prompt embeddings to load",
+    )
+    parser.add_argument(
         "--batch_size",
         default=1,
         type=int,
@@ -133,7 +145,8 @@ if __name__ == "__main__":
         "--save_embeddings",
         default=False,
         type=bool,
-        help="save embeddings to <save_to>_embeddings or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl", #TODO: format options
+        action=argparse.BooleanOptionalAction,
+        help="save embeddings to embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl", #TODO: format options
     )
 
     args = parser.parse_args()
@@ -142,6 +155,7 @@ if __name__ == "__main__":
         args.data_path,
         args.model_name,
         args.embeddings_file,
+        args.prompt_embeddings_file,
         args.batch_size,
         args.device,
         args.prompt_pattern,

@@ -43,8 +43,9 @@ class ZeroShotWrapper():
         self.model = SentenceTransformer(self.model_name, device=self.device)
         self.candidate_labels = candidate_labels
         self.hypotheses = [hypothesis_template.format(l) for l in candidate_labels]
-        if hypotheses_embeddings:
-            self.hypotheses_embeddings = hypotheses_embeddings
+        self.hypothesis_template = hypothesis_template
+        if hypotheses_embeddings is not None:
+            self.hypotheses_embeddings = torch.from_numpy(hypotheses_embeddings).float().to(self.device)
         else:
             self.hypotheses_embeddings = self.model.encode(self.hypotheses, convert_to_tensor=True)
     
@@ -81,54 +82,47 @@ class T5TextWrapper:
         return {"toxicity": predictions[:, 0], "safety": predictions[:, 1]}
 
 
-def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_embs=False):
-    text_data = dataset['text'].fillna('')
-    ids = dataset['id']
+def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_dir='', save_embs=False):
+    text_data = dataset['text'].fillna('').to_list()
+    ids = dataset['id'].to_list()
 
-    def batch(your_list, bs=1):
+    def batch_gen(your_list, bs):
         l = len(your_list)
         for i in range(0, l, bs):
             yield your_list[i:min(i + bs, l)]
 
     # save empty csv file where the results will be saved
-    pd.DataFrame({'id': [], **{cl: [] for cl in col_names}}).to_csv(f'results_{save_name}.csv', index=False)
+    res_file = os.path.join(save_dir, f'results_{save_name}.csv') 
+    pd.DataFrame({'id': [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
     if save_embs:
-        embf = open(f'embeddings_{save_name}.pkl', "ab")
-        pr_embf = open(f'prompt_embeddings_{save_name}.pkl', "ab")
-        pkl.dump({'prompts': model.hypotheses, 'embeddings': model.hypotheses_embeddings.cpu().numpy()}, pr_embf, protocol=pkl.HIGHEST_PROTOCOL)
+        # open file for embedding batches
+        embf = open(os.path.join(save_dir, f'embeddings_{save_name}.pkl'), "ab")
+        # save prompts with embeddings
+        pr_embf = open(os.path.join(save_dir, f'prompt_embeddings_{save_name}.pkl'), "ab")
+        pkl.dump({'ids': model.candidate_labels, 
+                  'embeddings': model.hypotheses_embeddings.cpu().numpy(),
+                  'metadata': model.hypothesis_template}, 
+                  pr_embf, protocol=pkl.HIGHEST_PROTOCOL)
         pr_embf.close()
 
     cnt = 0
     if isinstance(embeddings, np.ndarray):
-        for batched_text, batched_embeddings in tqdm(
-            zip(batch(text_data.fillna("").to_list(), batch_size), batch(embeddings, batch_size)), 
-            total=len(text_data) / batch_size):
-            batched_result = model.predict(batched_text, batched_embeddings)
-            if 'predictions' in batched_result.keys():
-                dict_to_append = {'text': batched_text, **batched_result['predictions']}
-            else:
-                dict_to_append = {'text': batched_text, **batched_result}
-            # append result dict for each batch to csv file
-            pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batched_text))))).to_csv(save_name,
-                                                                                        mode='a', header=None, index=False)
-            if save_embs:
-                pkl.dump({'tweets': batched_text, 'embeddings': batched_result['embeddings'].cpu().numpy()}, embf, protocol=pkl.HIGHEST_PROTOCOL)
-
-            cnt += batch_size
+        batches = map(lambda x: {'ids': x[0], 'texts': x[1], 'embeddings': x[2]}, 
+                        zip(batch_gen(ids, batch_size), batch_gen(text_data, batch_size), batch_gen(embeddings, batch_size)))
     else:
-        for batched_text in tqdm(batch(text_data.fillna("").to_list(), batch_size), total=len(text_data) / batch_size):
-            batched_result = model.predict(batched_text)
-            if 'predictions' in batched_result.keys():
-                dict_to_append = {'text': batched_text, **batched_result['predictions']}
-            else:
-                dict_to_append = {'text': batched_text, **batched_result}
-            # append result dict for each batch to csv file
-            pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batched_text))))).to_csv(save_name,
-                                                                                        mode='a', header=None, index=False)
-            if save_embs:
-                pkl.dump({'tweets': batched_text, 'embeddings': batched_result['embeddings'].cpu().numpy()}, embf, protocol=pkl.HIGHEST_PROTOCOL)
+        batches = map(lambda x: {'ids': x[0], 'texts': x[1], 'embeddings': None},
+                        zip(batch_gen(ids, batch_size), batch_gen(text_data, batch_size)))
 
-            cnt += batch_size
+    for batch in tqdm(batches, total=len(text_data) / batch_size):
+        batched_result = model.predict(batch['texts'], batch['embeddings'])
+        dict_to_append = {'ids': batch['ids'], **batched_result['predictions']}
+        # append result dict for each batch to csv file
+        pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch))))).to_csv(res_file,
+                                                                                    mode='a', header=None, index=False)
+        if save_embs:
+            # append embeddings to embeddings file
+            pkl.dump({'ids': batch['ids'], 'embeddings': batched_result['embeddings'].cpu().numpy()}, embf, protocol=pkl.HIGHEST_PROTOCOL)
+        cnt += batch_size
 
     if save_embs:    
         embf.close()
