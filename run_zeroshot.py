@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import pickle as pkl
 import argparse
+import warnings
 
 from classifiers import run, ZeroShotWrapper
 
@@ -69,7 +70,8 @@ def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, prompt_
         if loaded_candidate_labels != candidate_labels:
             raise Exception(f'Prompt embedding labels are not matching with given labels:\nPrompt embedding:{loaded_candidate_labels}\nGiven labels:{candidate_labels}')
         if loaded_prompt_pattern != prompt_pattern: #TODO: handle default prompt_pattern?
-            raise Exception(f'Prompt embedding pattern is not matching with given pattern:\nPrompt embedding:{loaded_prompt_pattern}\nGiven labels:{prompt_pattern}')
+            warnings.warn(f'Loaded prompt embedding pattern is not matching with given pattern. We use the loaded one:\n{loaded_prompt_pattern}')
+            prompt_pattern = loaded_prompt_pattern
     else:
         prompt_embeddings = None
 

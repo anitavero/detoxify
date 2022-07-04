@@ -104,10 +104,12 @@ def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save
         prompt_file = os.path.join(save_dir, f'prompt_embeddings_{save_name}.pkl')
         exists = [emb_file if os.path.exists(emb_file) else None, prompt_file if os.path.exists(prompt_file) else None]
         if any(exists) and overwrite == False:
-            if not ask_to_proceed_with_overwrite(', '.join(filter(None, exists))):
+            overwrite = ask_to_proceed_with_overwrite(', '.join(filter(None, exists)))
+            if not overwrite:
                 return False
-            os.remove(emb_file)
-            os.remove(prompt_file)
+        if overwrite:
+            for f in filter(None, exists):
+                os.remove(f)
 
         embf = open(emb_file, "ab")
         # save prompts with embeddings
