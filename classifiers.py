@@ -12,6 +12,7 @@ from typing import Union, List, Optional
 import pickle as pkl
 import re
 import numpy as np
+from utils import ask_to_proceed_with_overwrite
 
 
 #### Zero shot models
@@ -82,7 +83,7 @@ class T5TextWrapper:
         return {"toxicity": predictions[:, 0], "safety": predictions[:, 1]}
 
 
-def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_dir='', save_embs=False):
+def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save_name='results.csv', save_dir='', save_embs=False, overwrite=False):
     text_data = dataset['text'].fillna('').to_list()
     ids = dataset['id'].to_list()
 
@@ -93,12 +94,24 @@ def run(model, dataset, embeddings=None, batch_size=1, col_names=['score'], save
 
     # save empty csv file where the results will be saved
     res_file = os.path.join(save_dir, f'results_{save_name}.csv') 
+    if os.path.exists(res_file) and overwrite == False:
+        if not ask_to_proceed_with_overwrite(res_file):
+            return False
     pd.DataFrame({'id': [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
     if save_embs:
         # open file for embedding batches
-        embf = open(os.path.join(save_dir, f'embeddings_{save_name}.pkl'), "ab")
+        emb_file = os.path.join(save_dir, f'embeddings_{save_name}.pkl')
+        prompt_file = os.path.join(save_dir, f'prompt_embeddings_{save_name}.pkl')
+        exists = [emb_file if os.path.exists(emb_file) else None, prompt_file if os.path.exists(prompt_file) else None]
+        if any(exists) and overwrite == False:
+            if not ask_to_proceed_with_overwrite(', '.join(filter(None, exists))):
+                return False
+            os.remove(emb_file)
+            os.remove(prompt_file)
+
+        embf = open(emb_file, "ab")
         # save prompts with embeddings
-        pr_embf = open(os.path.join(save_dir, f'prompt_embeddings_{save_name}.pkl'), "ab")
+        pr_embf = open(prompt_file, "ab")
         pkl.dump({'ids': model.candidate_labels, 
                   'embeddings': model.hypotheses_embeddings.cpu().numpy(),
                   'metadata': model.hypothesis_template}, 

@@ -36,7 +36,7 @@ def load_embeddings(data_file):
 
 
 def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, prompt_embeddings_file=None, batch_size=1, device='cpu', 
-                  prompt_pattern='This text is about {}', candidate_labels=None, save_to='', save_embeddings=False):
+                  prompt_pattern='This text is about {}', candidate_labels=None, save_to='', save_embeddings=False, overwrite=False):
     dataset_name = os.path.basename(data_path).split('.')[0]
     dataset = pd.read_csv(data_path, sep=",", dtype={'id': 'string'})   # read ids as strings so they don't get messed up
     columns = list(dataset.columns)
@@ -81,7 +81,8 @@ def run_zeroshot(data_path, model_name='t5-small', embeddings_file=None, prompt_
         col_names=candidate_labels, 
         save_name=save_name, 
         save_dir=save_dir,
-        save_embs=save_embeddings)
+        save_embs=save_embeddings,
+        overwrite=overwrite)
 
 
 if __name__ == "__main__":
@@ -148,6 +149,13 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="save embeddings to embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl", #TODO: format options
     )
+    parser.add_argument(
+        "--overwrite",
+        default=False,
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        help="overwrite existing results and embeddings files (default: False)",
+    )
 
     args = parser.parse_args()
 
@@ -161,5 +169,6 @@ if __name__ == "__main__":
         args.prompt_pattern,
         args.candidate_labels,
         args.save_to,
-        args.save_embeddings
+        args.save_embeddings,
+        args.overwrite
     )
