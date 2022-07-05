@@ -75,12 +75,18 @@ def test_run_zeroshot():
         )
 
 
-def test_save_load_embeddings():
+def test_save_load_embeddings(tmp_path):
     """Test if we ids match and are in string format."""
-    data_path = "tests/dummy_data/test_ids.csv"
-    data_path11 = "tests/dummy_data/test_ids_11.csv"
-    data_path1 = "tests/dummy_data/test_ids_1.csv"
-    data_path2 = "tests/dummy_data/test_ids_2.csv"
+    data_path = tmp_path / "tests/test_ids.csv"
+    data_path11 = tmp_path / "tests/test_ids_11.csv"
+    data_path1 = tmp_path / "tests/test_ids_1.csv"
+    data_path2 = tmp_path / "tests/test_ids_2.csv"
+    data_path.parent.mkdir()
+    data_path.touch()
+    data_path11.touch()
+    data_path1.touch()
+    data_path2.touch()
+
     dataset = pd.DataFrame({"id": ["1-1", "1", "2"], "text": ["plant", "violence", "love"]}).to_csv(
         data_path, index=False
     )
@@ -96,7 +102,7 @@ def test_save_load_embeddings():
         device="cuda",
         prompt_pattern="This text is about {}",
         candidate_labels=["violence", "plant"],
-        save_to="tests/dummy_data/TEST_IDS",
+        save_to=tmp_path / "tests/TEST_IDS",
         save_embeddings=True,
         overwrite=True,
     )
@@ -109,7 +115,7 @@ def test_save_load_embeddings():
         device="cuda",
         prompt_pattern="This text is about {}",
         candidate_labels=["violence", "plant"],
-        save_to="tests/dummy_data/TEST_IDS_1-1",
+        save_to=tmp_path / "tests/TEST_IDS_1-1",
         save_embeddings=True,
         overwrite=True,
     )
@@ -122,7 +128,7 @@ def test_save_load_embeddings():
         device="cuda",
         prompt_pattern="This text is about {}",
         candidate_labels=["violence", "plant"],
-        save_to="tests/dummy_data/TEST_IDS_1",
+        save_to=tmp_path / "tests/TEST_IDS_1",
         save_embeddings=True,
         overwrite=True,
     )
@@ -135,14 +141,14 @@ def test_save_load_embeddings():
         device="cuda",
         prompt_pattern="This text is about {}",
         candidate_labels=["violence", "plant"],
-        save_to="tests/dummy_data/TEST_IDS_2",
+        save_to=tmp_path / "tests/TEST_IDS_2",
         save_embeddings=True,
         overwrite=True,
     )
-    results = pd.read_csv("tests/dummy_data/results_TEST_IDS.csv", sep=",", dtype={"id": "string"})
-    results_11 = pd.read_csv("tests/dummy_data/results_TEST_IDS_1-1.csv", sep=",", dtype={"id": "string"})
-    results_1 = pd.read_csv("tests/dummy_data/results_TEST_IDS_1.csv", sep=",", dtype={"id": "string"})
-    results_2 = pd.read_csv("tests/dummy_data/results_TEST_IDS_2.csv", sep=",", dtype={"id": "string"})
+    results = pd.read_csv(tmp_path / "tests/results_TEST_IDS.csv", sep=",", dtype={"id": "string"})
+    results_11 = pd.read_csv(tmp_path / "tests//results_TEST_IDS_1-1.csv", sep=",", dtype={"id": "string"})
+    results_1 = pd.read_csv(tmp_path / "tests/results_TEST_IDS_1.csv", sep=",", dtype={"id": "string"})
+    results_2 = pd.read_csv(tmp_path / "tests/results_TEST_IDS_2.csv", sep=",", dtype={"id": "string"})
     assert results.sort_values(by="id").id.to_list() == ["1", "1-1", "2"]
     assert results.loc[results.id == "1-1"].violence.to_list()[0] == results_11.violence[0]
     assert results.loc[results.id == "1"].violence.to_list()[0] == results_1.violence[0]
