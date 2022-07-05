@@ -10,8 +10,10 @@ import pandas as pd
 from classifiers import run, ZeroShotWrapper
 
 
-DATASET_DESCRIPTION = """The first two columns of the datset has to be "id" and "text",
-                         there can be further columns including classnames:\n<id>,<text>[,<class_1>...<class_n>]"""
+DATASET_DESCRIPTION = (
+    'The first two columns of the datset has to be "id" and "text", '
+    + "there can be further columns including classnames:\n<id>,<text>[,<class_1>...<class_n>]"
+)
 
 
 def read_pickle_batches(file_name):
