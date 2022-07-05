@@ -2,7 +2,7 @@
 # Will be applied on any updated commit files if a user has installed and linked commit hook
 
 default_language_version:
-  python: python3.8
+  python: python3.10
 
 # Define bot property if installed via https://github.com/marketplace/pre-commit-ci
 ci:
@@ -39,8 +39,8 @@ repos:
     hooks:
       - id: ufmt
         additional_dependencies:
-          - black == 21.9b0
-          - usort == 0.6.4
+          - black == 22.3.0
+          - usort == 1.0.2
 
   # TODO
   #- repo: https://github.com/executablebooks/mdformat
