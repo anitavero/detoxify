@@ -25,7 +25,7 @@ def read_pickle_batches(file_name):
             pass
 
 
-def load_embeddings(data_file):
+def read_pickle(data_file):
     embeddings = None
     ids = []
     metadata = None
@@ -41,6 +41,20 @@ def load_embeddings(data_file):
     return ids, embeddings, metadata
 
 
+def load_embeddings(data_file):
+    ext = os.path.splitext(data_file)[1]
+    if ext == ".pkl":
+        return read_pickle(data_file)
+    elif ext == ".h5":
+        data = pd.read_hdf(data_file)
+        metadata = None
+        if "metadata" in data.keys():
+            metadata = data["metadata"]
+        return data["embeddings"]["ids"], data["embeddings"]["embeddings"], metadata
+    else:
+        raise Exception("Only .pkl or .h5 embedding file can be loaded")
+
+
 def run_zeroshot(
     data_path,
     model_name="t5-small",
@@ -51,7 +65,7 @@ def run_zeroshot(
     prompt_pattern="This text is about {}",
     candidate_labels=None,
     save_to="",
-    save_embeddings=False,
+    save_embeddings_to="",
     overwrite=False,
 ):
     dataset_name = os.path.basename(data_path).split(".")[0]
@@ -108,7 +122,7 @@ def run_zeroshot(
         col_names=candidate_labels,
         save_name=save_name,
         save_dir=save_dir,
-        save_embs=save_embeddings,
+        save_embeddings_to=save_embeddings_to,
         overwrite=overwrite,
     )
 
@@ -169,12 +183,13 @@ if __name__ == "__main__":
         + " (default: results_<model_name>_<dataset>_<prompt_pattern>.csv)",
     )
     parser.add_argument(
-        "--save_embeddings",
-        default=False,
-        type=bool,
-        action=argparse.BooleanOptionalAction,
-        help="save embeddings to embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl",
-        # TODO: format options
+        "--save_embeddings_to",
+        default="",
+        type=str,
+        choices=["pickle", "hdf5"],
+        help="save embeddings to pickle or hdf5 (default: "
+        " -- don't save)"
+        + " Filename: embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.[pkl|h5]",
     )
     parser.add_argument(
         "--overwrite",
@@ -196,6 +211,6 @@ if __name__ == "__main__":
         args.prompt_pattern,
         args.candidate_labels,
         args.save_to,
-        args.save_embeddings,
+        args.save_embeddings_to,
         args.overwrite,
     )

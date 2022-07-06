@@ -105,7 +105,7 @@ def run(
     col_names=["score"],
     save_name="results.csv",
     save_dir="",
-    save_embs=False,
+    save_embeddings_to="",
     overwrite=False,
 ):
     text_data = dataset["text"].fillna("").to_list()
@@ -122,12 +122,13 @@ def run(
         if not ask_to_proceed_with_overwrite(res_file):
             return False
     pd.DataFrame({"id": [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
-    if save_embs:
+    if save_embeddings_to:
         # open file for embedding batches
-        emb_file = os.path.join(save_dir, f"embeddings_{save_name}.pkl")
+        ext = {"pickle": "pkl", "hdf5": "h5"}
+        emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext[save_embeddings_to]}")
         is_zeroshot = isinstance(model, ZeroShotWrapper)
         if is_zeroshot:
-            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}.pkl")
+            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}.{ext[save_embeddings_to]}")
         else:
             prompt_file = ""
         exists = [emb_file if os.path.exists(emb_file) else None, prompt_file if os.path.exists(prompt_file) else None]
@@ -138,22 +139,28 @@ def run(
         if overwrite:
             for f in filter(None, exists):
                 os.remove(f)
-
-        embf = open(emb_file, "ab")
+        if save_embeddings_to == "pickle":
+            embf = open(emb_file, "ab")
+        elif save_embeddings_to == "hdf5":
+            embf = pd.DataFrame({"id": [], "embeddings": []}).to_hdf(emb_file, key="embeddings", index=False)
 
         if is_zeroshot:
             # save prompts with embeddings
-            pr_embf = open(prompt_file, "ab")
-            pkl.dump(
-                {
+            if save_embeddings_to == "pickle":
+                prompt_data = {
                     "ids": model.candidate_labels,
                     "embeddings": model.hypotheses_embeddings.cpu().numpy(),
                     "metadata": model.hypothesis_template,
-                },
-                pr_embf,
-                protocol=pkl.HIGHEST_PROTOCOL,
-            )
-            pr_embf.close()
+                }
+                with open(prompt_file, "ab") as pr_embf:
+                    pkl.dump(prompt_data, pr_embf, protocol=pkl.HIGHEST_PROTOCOL)
+            elif save_embeddings_to == "hdf5":
+                prompt_data = {
+                    "ids": model.candidate_labels,
+                    "embeddings": list(model.hypotheses_embeddings.cpu().numpy()),
+                }
+                pd.DataFrame(prompt_data).to_hdf(prompt_file, key="prompt_embeddings", index=False)
+                pd.DataFrame({"metadata": model.hypothesis_template}).to_hdf(prompt_file, key="metadata", index=False)
 
     cnt = 0
     if isinstance(embeddings, np.ndarray):
@@ -174,14 +181,14 @@ def run(
         pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch))))).to_csv(
             res_file, mode="a", header=None, index=False
         )
-        if save_embs:
+        if save_embeddings_to:
             # append embeddings to embeddings file
-            pkl.dump(
-                {"ids": batch["ids"], "embeddings": batched_result["embeddings"].cpu().numpy()},
-                embf,
-                protocol=pkl.HIGHEST_PROTOCOL,
-            )
+            emb_data = {"ids": batch["ids"], "embeddings": batched_result["embeddings"].cpu().numpy()}
+            if save_embeddings_to == "pickle":
+                pkl.dump(emb_data, embf, protocol=pkl.HIGHEST_PROTOCOL)
+            elif save_embeddings_to == "hdf5":
+                pd.DataFrame(emb_data).to_hdf(emb_file, key="embeddings", mode="a", header=None, index=False)
         cnt += batch_size
 
-    if save_embs:
+    if save_embeddings_to == "pickle":
         embf.close()
