@@ -122,13 +122,13 @@ def run(
         if not ask_to_proceed_with_overwrite(res_file):
             return False
     pd.DataFrame({"id": [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
+    ext = {"pickle": "pkl"}[save_embeddings_to]  # For future extentions with further formats
     if save_embeddings_to:
         # open file for embedding batches
-        ext = {"pickle": "pkl", "hdf5": "h5"}
-        emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext[save_embeddings_to]}")
+        emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext}")
         is_zeroshot = isinstance(model, ZeroShotWrapper)
         if is_zeroshot:
-            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}.{ext[save_embeddings_to]}")
+            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}.{ext}")
         else:
             prompt_file = ""
         exists = [emb_file if os.path.exists(emb_file) else None, prompt_file if os.path.exists(prompt_file) else None]
@@ -141,53 +141,42 @@ def run(
                 os.remove(f)
         if save_embeddings_to == "pickle":
             embf = open(emb_file, "ab")
-        elif save_embeddings_to == "hdf5":
-            embf = pd.DataFrame({"id": [], "embeddings": []}).to_hdf(emb_file, key="embeddings", index=False)
 
         if is_zeroshot:
             # save prompts with embeddings
             if save_embeddings_to == "pickle":
                 prompt_data = {
-                    "ids": model.candidate_labels,
+                    "id": model.candidate_labels,
                     "embeddings": model.hypotheses_embeddings.cpu().numpy(),
                     "metadata": model.hypothesis_template,
                 }
                 with open(prompt_file, "ab") as pr_embf:
                     pkl.dump(prompt_data, pr_embf, protocol=pkl.HIGHEST_PROTOCOL)
-            elif save_embeddings_to == "hdf5":
-                prompt_data = {
-                    "ids": model.candidate_labels,
-                    "embeddings": list(model.hypotheses_embeddings.cpu().numpy()),
-                }
-                pd.DataFrame(prompt_data).to_hdf(prompt_file, key="prompt_embeddings", index=False)
-                pd.DataFrame({"metadata": model.hypothesis_template}).to_hdf(prompt_file, key="metadata", index=False)
 
     cnt = 0
     if isinstance(embeddings, np.ndarray):
         batches = map(
-            lambda x: {"ids": x[0], "texts": x[1], "embeddings": x[2]},
+            lambda x: {"id": x[0], "texts": x[1], "embeddings": x[2]},
             zip(batch_gen(ids, batch_size), batch_gen(text_data, batch_size), batch_gen(embeddings, batch_size)),
         )
     else:
         batches = map(
-            lambda x: {"ids": x[0], "texts": x[1], "embeddings": None},
+            lambda x: {"id": x[0], "texts": x[1], "embeddings": None},
             zip(batch_gen(ids, batch_size), batch_gen(text_data, batch_size)),
         )
 
     for batch in tqdm(batches, total=len(text_data) / batch_size):
         batched_result = model.predict(batch["texts"], batch["embeddings"])
-        dict_to_append = {"ids": batch["ids"], **batched_result["predictions"]}
+        dict_to_append = {"id": batch["id"], **batched_result["predictions"]}
         # append result dict for each batch to csv file
         pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch))))).to_csv(
             res_file, mode="a", header=None, index=False
         )
         if save_embeddings_to:
             # append embeddings to embeddings file
-            emb_data = {"ids": batch["ids"], "embeddings": batched_result["embeddings"].cpu().numpy()}
             if save_embeddings_to == "pickle":
+                emb_data = {"id": batch["id"], "embeddings": batched_result["embeddings"].cpu().numpy()}
                 pkl.dump(emb_data, embf, protocol=pkl.HIGHEST_PROTOCOL)
-            elif save_embeddings_to == "hdf5":
-                pd.DataFrame(emb_data).to_hdf(emb_file, key="embeddings", mode="a", header=None, index=False)
         cnt += batch_size
 
     if save_embeddings_to == "pickle":

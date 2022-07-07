@@ -30,7 +30,7 @@ def read_pickle(data_file):
     ids = []
     metadata = None
     for batch in read_pickle_batches(data_file):
-        ids += batch["ids"]
+        ids += batch["id"]
         bemb = batch["embeddings"]
         if not isinstance(embeddings, np.ndarray):
             embeddings = bemb
@@ -45,14 +45,8 @@ def load_embeddings(data_file):
     ext = os.path.splitext(data_file)[1]
     if ext == ".pkl":
         return read_pickle(data_file)
-    elif ext == ".h5":
-        data = pd.read_hdf(data_file)
-        metadata = None
-        if "metadata" in data.keys():
-            metadata = data["metadata"]
-        return data["embeddings"]["ids"], data["embeddings"]["embeddings"], metadata
     else:
-        raise Exception("Only .pkl or .h5 embedding file can be loaded")
+        raise Exception("Only .pkl embedding file can be loaded")
 
 
 def run_zeroshot(
@@ -186,10 +180,9 @@ if __name__ == "__main__":
         "--save_embeddings_to",
         default="",
         type=str,
-        choices=["pickle", "hdf5"],
-        help="save embeddings to pickle or hdf5 (default: "
-        " -- don't save)"
-        + " Filename: embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.[pkl|h5]",
+        choices=["pickle"],
+        help="save embeddings to pickle "
+        " -- don't save)" + " Filename: embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl",
     )
     parser.add_argument(
         "--overwrite",

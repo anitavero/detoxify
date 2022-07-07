@@ -18,7 +18,7 @@ def test_run_zeroshot():
         prompt_pattern="This text is about {}",
         candidate_labels=None,
         save_to=None,
-        save_embeddings_to="",
+        save_embeddings_to="pickle",
         overwrite=True,
     )
 
@@ -95,6 +95,8 @@ def test_save_load_embeddings(tmp_path):
     dataset2 = pd.DataFrame({"id": ["2"], "text": ["love"]}).to_csv(data_path2, index=False)
 
     def test_indices(format):
+        ext = {"pickle": "pkl", "hdf5": "h5"}[format]
+
         run_zeroshot(
             data_path,
             model_name="bart",
@@ -164,8 +166,8 @@ def test_save_load_embeddings(tmp_path):
         run_zeroshot(
             data_path,
             model_name="bart",
-            embeddings_file=tmp_path / "tests/embeddings_TEST_IDS.pkl",
-            prompt_embeddings_file=tmp_path / "tests/prompt_embeddings_TEST_IDS.pkl",
+            embeddings_file=tmp_path / f"tests/embeddings_TEST_IDS.{ext}",
+            prompt_embeddings_file=tmp_path / f"tests/prompt_embeddings_TEST_IDS.{ext}",
             batch_size=1,
             device="cuda",
             prompt_pattern="This text is about {}",
@@ -188,6 +190,5 @@ def test_save_load_embeddings(tmp_path):
             == results_emb.loc[results.id == "2"].violence.to_list()[0]
         )
 
-    # Test for pickle and hdf5 embedding file formats
-    # test_indices("pickle")
-    test_indices("hdf5")
+    # Test for pickle
+    test_indices("pickle")
