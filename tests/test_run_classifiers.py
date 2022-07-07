@@ -190,5 +190,5 @@ def test_save_load_embeddings(tmp_path):
             == results_emb.loc[results.id == "2"].violence.to_list()[0]
         )
 
-    # Test for pickle
+    # Test for pickle TODO: potentially add other formats
     test_indices("pickle")

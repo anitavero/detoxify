@@ -14,11 +14,12 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipe
 from .utils import ask_to_proceed_with_overwrite
 
 
-class ZeroShotWrapper:
-    """ "
-    Zeroshot models mased on pretrained embeddings.
+class NShotWrapper:
+    """
+    Zeroshot or Fewshot models based on pretrained embeddings.
     We use the improved T5 versions from https://huggingface.co/docs/transformers/model_doc/t5v1.1.
     Args:
+        candidate_labels(str list): label list
         model_name(str): model name to be loaded, can be
             bart
             roberta
@@ -27,15 +28,14 @@ class ZeroShotWrapper:
             t5-large
             t5-xl
             t5-xxl
+        device(str): device commpute on (default: cpu)
     """
 
     def __init__(
         self,
         candidate_labels,
-        hypothesis_template: str,
         model_name: Optional[str] = "bart",
         device: Optional[str] = "cpu",
-        hypotheses_embeddings: Optional[np.ndarray] = None,
     ):
         self.model_name = {
             "bart": "facebook/bart-large-mnli",
@@ -49,6 +49,35 @@ class ZeroShotWrapper:
         self.device = device
         self.model = SentenceTransformer(self.model_name, device=self.device)
         self.candidate_labels = candidate_labels
+
+    def encode(self, input_text: Union[str, List[str]], embeddings: Optional[np.ndarray] = None) -> dict:
+        if not isinstance(input_text, list):
+            input_text = [input_text]
+        if isinstance(embeddings, np.ndarray):
+            input_embeddings = torch.from_numpy(embeddings).float().to(self.device)
+        else:
+            input_embeddings = self.model.encode(input_text, convert_to_tensor=True)
+        return input_embeddings
+
+
+class ZeroShotWrapper(NShotWrapper):
+    """
+    Zeroshot models based on pretrained embeddings.
+    Args:
+        candidate_labels, model_name, device: see NShotWrapper
+        hypothesis_template(str): Prompt pattern for zeroshot classification (has to include {})
+        hypotheses_embeddings(np.ndarray): precomputer hypothesis embeddings
+    """
+
+    def __init__(
+        self,
+        candidate_labels,
+        hypothesis_template: str,
+        model_name: Optional[str] = "bart",
+        device: Optional[str] = "cpu",
+        hypotheses_embeddings: Optional[np.ndarray] = None,
+    ):
+        super().__init__(candidate_labels, model_name, device)
         self.hypotheses = [hypothesis_template.format(label) for label in candidate_labels]
         self.hypothesis_template = hypothesis_template
         if hypotheses_embeddings is not None:
@@ -57,12 +86,7 @@ class ZeroShotWrapper:
             self.hypotheses_embeddings = self.model.encode(self.hypotheses, convert_to_tensor=True)
 
     def predict(self, input_text: Union[str, List[str]], embeddings: Optional[np.ndarray] = None) -> dict:
-        if not isinstance(input_text, list):
-            input_text = [input_text]
-        if isinstance(embeddings, np.ndarray):
-            input_embeddings = torch.from_numpy(embeddings).float().to(self.device)
-        else:
-            input_embeddings = self.model.encode(input_text, convert_to_tensor=True)
+        input_embeddings = self.encode(input_text, embeddings)
         predictions = util.pytorch_cos_sim(input_embeddings, self.hypotheses_embeddings).cpu()
         return {
             "predictions": {l: predictions[:, i] for (i, l) in enumerate(self.candidate_labels)},
