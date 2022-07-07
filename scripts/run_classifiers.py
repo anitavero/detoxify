@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 
-from classifiers import run, ZeroShotWrapper
+from .classifiers import run, ZeroShotWrapper
 
 
 DATASET_DESCRIPTION = (

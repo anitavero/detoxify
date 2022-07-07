@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from run_classifiers import run_zeroshot
+from scripts.run_classifiers import run_zeroshot
 
 
 def test_run_zeroshot():

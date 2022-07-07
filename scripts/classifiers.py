@@ -10,7 +10,8 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
-from utils import ask_to_proceed_with_overwrite
+
+from .utils import ask_to_proceed_with_overwrite
 
 
 class ZeroShotWrapper:
