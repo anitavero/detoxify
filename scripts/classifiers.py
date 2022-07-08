@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
@@ -94,32 +95,18 @@ class ZeroShotWrapper(NShotWrapper):
         }
 
 
-# Linear probe trained over tranformer embeddings
+class FewShotWrapper(NShotWrapper, pl.LightningModule):
+    """
+    Fewshot models: train an MLP on top of pretrained embeddings.
+    Args:
+        candidate_labels, model_name, device: see NShotWrapper
+    """
 
+    def __init__(self, candidate_labels, model_name: Optional[str] = "bart", device: Optional[str] = "cpu"):
+        super().__init__(candidate_labels, model_name, device)
 
-# class T5TextWrapper:
-#     def __init__(
-#         self,
-#         cla_path: str,
-#         model_name: Optional[str] = "sentence-transformers/sentence-t5-xl",
-#         device: Optional[str] = "cpu",
-#     ):
-#         model_ckp = os.path.split(cla_path)[1]
-#         if not os.path.exists(model_ckp):
-#             os.system(f"aws s3 cp {cla_path} .")
-
-#         self.model = SentenceTransformer(model_name).to(device)
-#         self.model = self.model.eval()
-#         self.device = device
-#         self.classifier = pd.read_pickle(model_ckp)
-
-#     def predict(self, input_text: Union[str, List[str]]) -> dict:
-#         if not isinstance(input_text, list):
-#             input_text = [input_text]
-#         with torch.no_grad():
-#             text_feature = self.model.encode(input_text)
-#         predictions = self.classifier.predict_proba(text_feature)
-#         return {"toxicity": predictions[:, 0], "safety": predictions[:, 1]}
+    def predict(self, input_text: Union[str, List[str]], embeddings: Optional[np.ndarray] = None) -> dict:
+        input_embeddings = self.encode(input_text, embeddings)
 
 
 def run(

@@ -48,7 +48,6 @@ def test_classifier(config, dataset, checkpoint_path, device="cuda:0"):
         ids += meta["text_id"]
         with torch.no_grad():
             out = model.forward(*items)
-            # TODO: save embeddings
             sm = torch.sigmoid(out).cpu().detach().numpy()
         scores.extend(sm)
 

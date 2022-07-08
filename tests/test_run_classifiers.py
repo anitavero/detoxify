@@ -41,7 +41,7 @@ def test_run_zeroshot():
 
     with pytest.raises(
         Exception,
-        match='The first two columns of the datset has to be "id" and "text",',
+        match="The first two columns of the datset has to be <id_column> and <text_column>",
     ):
         run_zeroshot(
             data_path_wrong_format,

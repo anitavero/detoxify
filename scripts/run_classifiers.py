@@ -11,7 +11,7 @@ from .classifiers import run, ZeroShotWrapper
 
 
 DATASET_DESCRIPTION = (
-    'The first two columns of the datset has to be "id" and "text", '
+    'The first two columns of the datset has to be <id_column> and <text_column> (default: "id", "text"); '
     + "there can be further columns including classnames:\n<id>,<text>[,<class_1>...<class_n>]"
 )
 
@@ -61,11 +61,16 @@ def run_zeroshot(
     save_to="",
     save_embeddings_to="",
     overwrite=False,
+    id_column="id",
+    text_column="text",
 ):
     dataset_name = os.path.basename(data_path).split(".")[0]
-    dataset = pd.read_csv(data_path, sep=",", dtype={"id": "string"})  # read ids as strings so they don't get messed up
+    dataset = pd.read_csv(
+        data_path, sep=",", dtype={id_column: "string"}
+    )  # read ids as strings so they don't get messed up
     columns = list(dataset.columns)
-    if len(columns) < 2 or columns[0] != "id" or columns[1] != "text":
+    # TODO: read classes only as parameter or from config file instead of table columns
+    if len(columns) < 2 or columns[0] != id_column or columns[1] != text_column:
         raise Exception(DATASET_DESCRIPTION)
     if save_to:
         save_name = os.path.splitext(os.path.basename(save_to))[0]
@@ -191,6 +196,20 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="overwrite existing results and embeddings files (default: False)",
     )
+    parser.add_argument(
+        "--id_column",
+        default="id",
+        type=str,
+        action=argparse.BooleanOptionalAction,
+        help="name of id dataset column (default: id)",
+    )
+    parser.add_argument(
+        "--text_column",
+        default="text",
+        type=str,
+        action=argparse.BooleanOptionalAction,
+        help="name of text dataset column (default: text)",
+    )
 
     args = parser.parse_args()
 
@@ -206,4 +225,6 @@ if __name__ == "__main__":
         args.save_to,
         args.save_embeddings_to,
         args.overwrite,
+        args.id_column,
+        args.text_column,
     )
