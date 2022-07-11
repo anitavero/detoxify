@@ -10,10 +10,7 @@ import pandas as pd
 from .classifiers import run, ZeroShotWrapper
 
 
-DATASET_DESCRIPTION = (
-    'The first two columns of the datset has to be <id_column> and <text_column> (default: "id", "text"); '
-    + "there can be further columns including classnames:\n<id>,<text>[,<class_1>...<class_n>]"
-)
+DATASET_DESCRIPTION = 'The dataset needs to include an <id_column> and a <text_column> (default: "id", "text")'
 
 
 def read_pickle_batches(file_name):
@@ -51,13 +48,13 @@ def load_embeddings(data_file):
 
 def run_zeroshot(
     data_path,
+    candidate_labels,
     model_name="t5-small",
     embeddings_file=None,
     prompt_embeddings_file=None,
     batch_size=1,
     device="cpu",
     prompt_pattern="This text is about {}",
-    candidate_labels=None,
     save_to="",
     save_embeddings_to="",
     overwrite=False,
@@ -65,12 +62,11 @@ def run_zeroshot(
     text_column="text",
 ):
     dataset_name = os.path.basename(data_path).split(".")[0]
-    dataset = pd.read_csv(
+    dataset = pd.read_csv(  # read ids as strings so they don't get messed up
         data_path, sep=",", dtype={id_column: "string"}
-    )  # read ids as strings so they don't get messed up
+    )
     columns = list(dataset.columns)
-    # TODO: read classes only as parameter or from config file instead of table columns
-    if len(columns) < 2 or columns[0] != id_column or columns[1] != text_column:
+    if len(columns) < 2 or id_column not in columns or text_column not in columns:
         raise Exception(DATASET_DESCRIPTION)
     if save_to:
         save_name = os.path.splitext(os.path.basename(save_to))[0]
@@ -78,13 +74,6 @@ def run_zeroshot(
     else:
         save_name = f'{model_name}_{dataset_name}_{"_".join(prompt_pattern.split())}'
         save_dir = os.path.dirname(data_path)
-    if candidate_labels is None:
-        if len(columns) > 2:
-            candidate_labels = columns[2:]
-        else:
-            raise Exception(
-                f"Either candidate_labels should be given or {data_path} should include classnames as columns [2:]"
-            )
 
     print("Prompt pattern:", prompt_pattern)
     print("Labels:")
@@ -132,7 +121,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data_path",
         type=str,
+        required=True,
         help="path to dataset csv file. " + DATASET_DESCRIPTION,
+    )
+    parser.add_argument(
+        "--candidate_labels",
+        default=None,
+        type=list,
+        required=True,
+        help="Candidate labels inserted in prompt_pattern.",
     )
     parser.add_argument(
         "--model_name",
@@ -166,13 +163,6 @@ if __name__ == "__main__":
         type=str,
         help="Prompt pattern to query classes. (default: 'This text is about {}"
         + " -- classnames are placed inside the {})",
-    )
-    parser.add_argument(
-        "--candidate_labels",
-        default=None,
-        type=list,
-        help="Candidate labels inserted in prompt_pattern."
-        + " If None, labels will be read from the dataset columns [2:] (default: None)",
     )
     parser.add_argument(
         "--save_to",
@@ -215,13 +205,13 @@ if __name__ == "__main__":
 
     run_zeroshot(
         args.data_path,
+        args.candidate_labels,
         args.model_name,
         args.embeddings_file,
         args.prompt_embeddings_file,
         args.batch_size,
         args.device,
         args.prompt_pattern,
-        args.candidate_labels,
         args.save_to,
         args.save_embeddings_to,
         args.overwrite,

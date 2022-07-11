@@ -10,13 +10,13 @@ def test_zeroshot(config, data_path=None, device="cuda:0"):
 
     run_zeroshot(
         data_path,
+        candidate_labels=config["dataset"]["args"]["classes"],
         model_name=config["arch"]["args"]["model_name"],
         embeddings_file=None,
         prompt_embeddings_file=None,
         batch_size=1,
         device=device,
         prompt_pattern="This text is about {}",
-        candidate_labels=config["dataset"]["args"]["classes"],
         save_to="",
         save_embeddings_to="",
         overwrite=True,

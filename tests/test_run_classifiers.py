@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 import pytest
 
@@ -7,16 +9,19 @@ from scripts.run_classifiers import run_zeroshot
 def test_run_zeroshot():
     data_path = "tests/dummy_data/test_dataset.csv"
     data_path_wrong_format = "tests/dummy_data/test_dataset_wrongcolname.csv"
+    data_path_missing_id = "tests/dummy_data/test_dataset_missing_id.csv"
+
+    classes = ["toxicity", "severe_toxicity", "obscene", "threat", "insult", "identity_attack"]
 
     run_zeroshot(
         data_path,
+        candidate_labels=classes,
         model_name="t5-small",
         embeddings_file=None,
         prompt_embeddings_file=None,
         batch_size=1,
         device="cuda",
         prompt_pattern="This text is about {}",
-        candidate_labels=None,
         save_to=None,
         save_embeddings_to="pickle",
         overwrite=True,
@@ -27,50 +32,46 @@ def test_run_zeroshot():
     ):
         run_zeroshot(
             data_path,
+            candidate_labels=["A", "B"],
             model_name="t5-small",
             embeddings_file=None,
             prompt_embeddings_file="tests/dummy_data/prompt_embeddings_t5-small_test_dataset_This_text_is_about_{}.pkl",
             batch_size=1,
             device="cuda",
             prompt_pattern="This text is about {}",
-            candidate_labels=["A", "B"],
             save_to=None,
             save_embeddings_to="",
             overwrite=True,
         )
 
-    with pytest.raises(
-        Exception,
-        match="The first two columns of the datset has to be <id_column> and <text_column>",
-    ):
+    column_error = re.escape('The dataset needs to include an <id_column> and a <text_column> (default: "id", "text")')
+    with pytest.raises(Exception, match=column_error):
         run_zeroshot(
             data_path_wrong_format,
+            candidate_labels=classes,
             model_name="t5-small",
             embeddings_file=None,
             prompt_embeddings_file="tests/dummy_data/prompt_embeddings_t5-small_test_dataset_This_text_is_about_{}.pkl",
             batch_size=1,
             device="cuda",
             prompt_pattern="This text is about {}",
-            candidate_labels=None,
             save_to=None,
             save_embeddings_to="",
             overwrite=True,
         )
 
-    data_path = "tests/dummy_data/test_no_classes.csv"
-    dataset = pd.DataFrame({"id": ["1-1", "1", "2"], "text": ["flower", "kill", "love"]}).to_csv(data_path, index=False)
-    with pytest.raises(Exception, match="Either candidate_labels should be given or"):
+    with pytest.raises(Exception, match=column_error):
         run_zeroshot(
-            data_path,
+            data_path_missing_id,
+            candidate_labels=classes,
             model_name="t5-small",
             embeddings_file=None,
-            prompt_embeddings_file=None,
+            prompt_embeddings_file="tests/dummy_data/prompt_embeddings_t5-small_test_dataset_This_text_is_about_{}.pkl",
             batch_size=1,
             device="cuda",
             prompt_pattern="This text is about {}",
-            candidate_labels=None,
             save_to=None,
-            save_embeddings_to="pickle",
+            save_embeddings_to="",
             overwrite=True,
         )
 
