@@ -119,9 +119,11 @@ def run(
     save_dir="",
     save_embeddings_to="",
     overwrite=False,
+    id_column="id",
+    text_column="text",
 ):
-    text_data = dataset["text"].fillna("").to_list()
-    ids = dataset["id"].to_list()
+    text_data = dataset[text_column].fillna("").to_list()
+    ids = dataset[id_column].to_list()
 
     def batch_gen(your_list, bs):
         ln = len(your_list)
@@ -133,9 +135,9 @@ def run(
     if os.path.exists(res_file) and overwrite is False:
         if not ask_to_proceed_with_overwrite(res_file):
             return False
-    pd.DataFrame({"id": [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
-    ext = {"pickle": "pkl"}[save_embeddings_to]  # For future extentions with further formats
+    pd.DataFrame({id_column: [], **{cl: [] for cl in col_names}}).to_csv(res_file, index=False)
     if save_embeddings_to:
+        ext = {"pickle": "pkl"}[save_embeddings_to]  # For future extentions with further formats
         # open file for embedding batches
         emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext}")
         is_zeroshot = isinstance(model, ZeroShotWrapper)
@@ -179,7 +181,7 @@ def run(
 
     for batch in tqdm(batches, total=len(text_data) / batch_size):
         batched_result = model.predict(batch["texts"], batch["embeddings"])
-        dict_to_append = {"id": batch["id"], **batched_result["predictions"]}
+        dict_to_append = {id_column: batch["id"], **batched_result["predictions"]}
         # append result dict for each batch to csv file
         pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch))))).to_csv(
             res_file, mode="a", header=None, index=False

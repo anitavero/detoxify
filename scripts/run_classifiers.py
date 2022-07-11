@@ -112,6 +112,8 @@ def run_zeroshot(
         save_dir=save_dir,
         save_embeddings_to=save_embeddings_to,
         overwrite=overwrite,
+        id_column=id_column,
+        text_column=text_column,
     )
 
 
