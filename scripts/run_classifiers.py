@@ -178,8 +178,8 @@ if __name__ == "__main__":
         default="",
         type=str,
         choices=["pickle"],
-        help="save embeddings to pickle "
-        " -- don't save)" + " Filename: embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl",
+        help='save embeddings to pickle  (default: "" don\'t save);'
+        + " Filename: embeddings_<save_to> or embeddings_<model_name>_<dataset>_<prompt_pattern>.pkl",
     )
     parser.add_argument(
         "--overwrite",

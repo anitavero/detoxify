@@ -183,7 +183,7 @@ def run(
         batched_result = model.predict(batch["texts"], batch["embeddings"])
         dict_to_append = {id_column: batch["id"], **batched_result["predictions"]}
         # append result dict for each batch to csv file
-        pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch))))).to_csv(
+        pd.DataFrame(dict_to_append, index=list(range(cnt, cnt + min(batch_size, len(batch["id"]))))).to_csv(
             res_file, mode="a", header=None, index=False
         )
         if save_embeddings_to:
