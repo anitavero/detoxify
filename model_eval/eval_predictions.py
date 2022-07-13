@@ -15,8 +15,7 @@ def evaluate(config, results_file, test_label_file):
     """Evaluate model prediction scores."""
     results = pd.read_csv(results_file, dtype={"id": "string"})
     data_loader = JigsawDataOriginal(
-        "detoxify/jigsaw-toxic-comment-classification-challenge/data/test.csv",
-        "detoxify/jigsaw-toxic-comment-classification-challenge/data/test.csv",
+        test_csv_file="detoxify/jigsaw-toxic-comment-classification-challenge/data/test.csv",
         train=False,
     )
     labels = data_loader.load_data(test_label_file)
@@ -53,6 +52,16 @@ def evaluate(config, results_file, test_label_file):
     return results
 
 
+def save_metrics(results_file, labels_file, config_file):
+    results_name = os.path.splitext(os.path.basename(results_file))[0]
+    dir = os.path.dirname(results_file)
+    config = json.load(open(config_file))
+
+    metrics = evaluate(config, results_file, labels_file)
+    with open(os.path.join(dir, f"metrics_{results_name}.json"), "w") as f:
+        json.dump(metrics, f)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate model prediction scores.")
     parser.add_argument(
@@ -78,10 +87,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    test_set_name = os.path.splitext(os.path.basename(args.results))[0]
-    dir = os.path.dirname(args.results)
-    config = json.load(open(args.config))
-
-    metrics = evaluate(config, args.results, args.labels)
-    with open(os.path.join(dir, f"metrics_{test_set_name}.json"), "w") as f:
-        json.dump(metrics, f)
+    save_metrics(args.results, args.labels, args.config)
