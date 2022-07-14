@@ -1,12 +1,17 @@
 import argparse
 import json
+import os
+
+import eval_predictions
 
 from scripts.run_classifiers import run_zeroshot
 
 
-def test_zeroshot(config, data_path=None, device="cuda:0"):
+def test_zeroshot(config, data_path=None, device="cuda:0", eval=False):
     if data_path is None:
         data_path = config["dataset"]["args"]["test_csv_file"]
+
+    prompt_pattern = "This text is about {}"
 
     run_zeroshot(
         data_path,
@@ -16,13 +21,21 @@ def test_zeroshot(config, data_path=None, device="cuda:0"):
         prompt_embeddings_file=None,
         batch_size=config["batch_size"],
         device=device,
-        prompt_pattern="This text is about {}",
+        prompt_pattern=prompt_pattern,
         save_to="",
         save_embeddings_to="pickle",
         overwrite=True,
         id_column="id",
         text_column="comment_text",
     )
+
+    print("Evaluate")
+    dataset_name = os.path.basename(data_path).split(".")[0]
+    save_name = f'{config["arch"]["args"]["model_name"]}_{dataset_name}_{"_".join(prompt_pattern.split())}'
+    save_dir = os.path.dirname(data_path)
+    results_file = os.path.join(save_dir, save_name)
+    if eval:
+        eval_predictions.save_metrics(results_file, config)
 
 
 if __name__ == "__main__":
@@ -48,6 +61,13 @@ if __name__ == "__main__":
         type=str,
         help="path to test dataset",
     )
+    parser.add_argument(
+        "--eval",
+        default=False,
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        help="save evaluation metrics (default: False)",
+    )
 
     args = parser.parse_args()
     config = json.load(open(args.config))
@@ -55,4 +75,4 @@ if __name__ == "__main__":
     if args.device is not None:
         config["gpus"] = args.device
 
-    results = test_zeroshot(config, args.test_csv, args.device)
+    results = test_zeroshot(config, args.test_csv, args.device, args.eval)

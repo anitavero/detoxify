@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import warnings
 
 import numpy as np
@@ -11,14 +12,14 @@ from src.data_loaders import JigsawDataBias, JigsawDataMultilingual, JigsawDataO
 from torch.utils.data import DataLoader
 
 
-def evaluate(config, results_file, test_label_file):
+def evaluate(config, results_file):
     """Evaluate model prediction scores."""
     results = pd.read_csv(results_file, dtype={"id": "string"})
     data_loader = JigsawDataOriginal(
-        test_csv_file="detoxify/jigsaw-toxic-comment-classification-challenge/data/test.csv",
+        test_csv_file=config["dataset"]["args"]["test_csv_file"],
         train=False,
     )
-    labels = data_loader.load_data(test_label_file)
+    labels = data_loader.load_data(re.sub(".csv", "_labels.csv", config["dataset"]["args"]["test_csv_file"]))
 
     classes = list(results.columns)
     classes.remove("id")
@@ -52,12 +53,12 @@ def evaluate(config, results_file, test_label_file):
     return results
 
 
-def save_metrics(results_file, labels_file, config_file):
+def save_metrics(results_file, config_file):
     results_name = os.path.splitext(os.path.basename(results_file))[0]
     dir = os.path.dirname(results_file)
     config = json.load(open(config_file))
 
-    metrics = evaluate(config, results_file, labels_file)
+    metrics = evaluate(config, results_file)
     with open(os.path.join(dir, f"metrics_{results_name}.json"), "w") as f:
         json.dump(metrics, f)
 
