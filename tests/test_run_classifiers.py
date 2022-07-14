@@ -44,6 +44,27 @@ def test_run_zeroshot():
             overwrite=True,
         )
 
+    def test_prompt_patterns(prompt_pattern):
+        with pytest.raises(Exception, match="Prompt pattern should include exactly one {}"):
+            run_zeroshot(
+                data_path,
+                candidate_labels=["A", "B"],
+                model_name="t5-small",
+                embeddings_file=None,
+                prompt_embeddings_file=None,
+                batch_size=1,
+                device="cuda",
+                prompt_pattern=prompt_pattern,
+                save_to=None,
+                save_embeddings_to="",
+                overwrite=True,
+            )
+
+    test_prompt_patterns("This text is about")
+    test_prompt_patterns("This text is about {{}}")
+    test_prompt_patterns("This text is about {} and {}")
+    test_prompt_patterns("")
+
     column_error = re.escape('The dataset needs to include an <id_column> and a <text_column> (default: "id", "text")')
     with pytest.raises(Exception, match=column_error):
         run_zeroshot(

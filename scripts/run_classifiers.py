@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle as pkl
+import re
 import warnings
 
 import numpy as np
@@ -46,6 +47,16 @@ def load_embeddings(data_file):
         raise Exception("Only .pkl embedding file can be loaded")
 
 
+def check_prompt_pattern(prompt_pattern):
+    if (
+        prompt_pattern.count("{}") == 1
+        and len(re.findall(r"\{", prompt_pattern)) == 1
+        and len(re.findall(r"\}", prompt_pattern)) == 1
+    ):
+        return True
+    return False
+
+
 def run_zeroshot(
     data_path,
     candidate_labels,
@@ -68,6 +79,10 @@ def run_zeroshot(
     columns = list(dataset.columns)
     if len(columns) < 2 or id_column not in columns or text_column not in columns:
         raise Exception(DATASET_DESCRIPTION)
+
+    if not check_prompt_pattern(prompt_pattern):
+        raise Exception("Prompt pattern should include exactly one {}")
+
     if save_to:
         save_name = os.path.splitext(os.path.basename(save_to))[0]
         save_dir = os.path.dirname(save_to)

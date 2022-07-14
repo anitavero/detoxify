@@ -53,10 +53,11 @@ def evaluate(config, results_file):
     return results
 
 
-def save_metrics(results_file, config_file):
+def save_metrics(results_file, config):
     results_name = os.path.splitext(os.path.basename(results_file))[0]
     dir = os.path.dirname(results_file)
-    config = json.load(open(config_file))
+    if isinstance(config, str):
+        config = json.load(open(config))
 
     metrics = evaluate(config, results_file)
     with open(os.path.join(dir, f"metrics_{results_name}.json"), "w") as f:
@@ -79,13 +80,6 @@ if __name__ == "__main__":
         required=True,
         help="results file path",
     )
-    parser.add_argument(
-        "-l",
-        "--labels",
-        type=str,
-        required=True,
-        help="labels file path",
-    )
 
     args = parser.parse_args()
-    save_metrics(args.results, args.labels, args.config)
+    save_metrics(args.results, args.config)
