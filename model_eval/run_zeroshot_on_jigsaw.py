@@ -31,7 +31,7 @@ def test_zeroshot(config, data_path=None, device="cuda:0", eval=False):
 
     print("Evaluate")
     dataset_name = os.path.basename(data_path).split(".")[0]
-    save_name = f'{config["arch"]["args"]["model_name"]}_{dataset_name}_{"_".join(prompt_pattern.split())}'
+    save_name = f'results_{config["arch"]["args"]["model_name"]}_{dataset_name}_{"_".join(prompt_pattern.split())}.csv'
     save_dir = os.path.dirname(data_path)
     results_file = os.path.join(save_dir, save_name)
     if eval:
