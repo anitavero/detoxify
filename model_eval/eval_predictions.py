@@ -12,21 +12,8 @@ from src.data_loaders import JigsawDataBias, JigsawDataMultilingual, JigsawDataO
 from torch.utils.data import DataLoader
 
 
-def evaluate(config, results_file):
+def evaluate(scores, targets):
     """Evaluate model prediction scores."""
-    results = pd.read_csv(results_file, dtype={"id": "string"})
-    data_loader = JigsawDataOriginal(
-        test_csv_file=config["dataset"]["args"]["test_csv_file"],
-        train=False,
-    )
-    labels = data_loader.load_data(re.sub(".csv", "_labels.csv", config["dataset"]["args"]["test_csv_file"]))
-
-    classes = list(results.columns)
-    classes.remove("id")
-    assert results["id"].to_list() == labels["id"].to_list()
-    scores = results[classes].to_numpy()
-    targets = labels[classes].to_numpy()
-
     auc_scores = []
     for class_idx in range(scores.shape[1]):
         # labels for the test data; value of -1 indicates it was not used for scoring
@@ -59,7 +46,29 @@ def save_metrics(results_file, config):
     if isinstance(config, str):
         config = json.load(open(config))
 
-    metrics = evaluate(config, results_file)
+    results = pd.read_csv(results_file, dtype={"id": "string"})
+    if config["dataset"]["type"] == "JigsawDataOriginal":
+        data_loader = JigsawDataOriginal(
+            test_csv_file=config["dataset"]["args"]["test_csv_file"],
+            train=False,
+        )
+        labels = data_loader.load_data(re.sub(".csv", "_labels.csv", config["dataset"]["args"]["test_csv_file"]))
+    else:
+        labels = pd.read_csv(config["dataset"]["args"]["test_labels_csv_file"])
+
+    classes = list(results.columns)
+    if classes != labels.columns.to_list():
+        raise Exception(
+            "Classes in result and label file aren't matching:\n"
+            + f"Results: {', '.join(classes)} != \n"
+            + f"Labels: {', '.join(labels.columns)}"
+        )
+    classes.remove("id")
+    assert results["id"].to_list() == labels["id"].to_list()
+    scores = results[classes].to_numpy()
+    targets = labels[classes].to_numpy()
+
+    metrics = evaluate(scores, targets)
     with open(os.path.join(dir, f"metrics_{results_name}.json"), "w") as f:
         json.dump(metrics, f)
 
