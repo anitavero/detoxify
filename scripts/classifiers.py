@@ -130,8 +130,10 @@ def run(
         for i in range(0, ln, bs):
             yield your_list[i : min(i + bs, ln)]
 
+    files = {}
     # save empty csv file where the results will be saved
     res_file = os.path.join(save_dir, f"results_{save_name}.csv")
+    files["results"] = res_file
     if os.path.exists(res_file) and overwrite is False:
         if not ask_to_proceed_with_overwrite(res_file):
             return False
@@ -155,6 +157,9 @@ def run(
                 os.remove(f)
         if save_embeddings_to == "pickle":
             embf = open(emb_file, "ab")
+
+        files["embeddings"] = emb_file
+        files["prompt_embeddings"] = prompt_file
 
         if is_zeroshot:
             # save prompts with embeddings
@@ -195,3 +200,5 @@ def run(
 
     if save_embeddings_to == "pickle":
         embf.close()
+
+    return files

@@ -7,13 +7,13 @@ import eval_predictions
 from scripts.run_classifiers import run_zeroshot
 
 
-def test_zeroshot(config, data_path=None, device="cuda:0", eval=False):
+def test_zeroshot(config, data_path=None, device="cuda:0", eval=False, s3_dir=None):
     if data_path is None:
         data_path = config["dataset"]["args"]["test_csv_file"]
 
     prompt_pattern = "This text is about {}"
 
-    run_zeroshot(
+    files = run_zeroshot(
         data_path,
         candidate_labels=config["dataset"]["args"]["classes"],
         model_name=config["arch"]["args"]["model_name"],
@@ -30,12 +30,16 @@ def test_zeroshot(config, data_path=None, device="cuda:0", eval=False):
     )
 
     print("Evaluate")
-    dataset_name = os.path.basename(data_path).split(".")[0]
-    save_name = f'results_{config["arch"]["args"]["model_name"]}_{dataset_name}_{"_".join(prompt_pattern.split())}.csv'
-    save_dir = os.path.dirname(data_path)
-    results_file = os.path.join(save_dir, save_name)
     if eval:
-        eval_predictions.save_metrics(results_file, config)
+        files["metrics"] = eval_predictions.save_metrics(files["results"], config)
+
+    if s3_dir is not None:
+        print("Copying to S3")
+        os.system(f'aws s3 cp {files["results"]} {os.path.join(s3_dir, "results/")}')
+        if eval:
+            os.system(f'aws s3 cp {files["metrics"]} {os.path.join(s3_dir, "results/")}')
+        os.system(f'aws s3 cp {files["embeddings"]} {os.path.join(s3_dir, "embeddings/")}')
+        os.system(f'aws s3 cp {files["prompt_embeddings"]} {os.path.join(s3_dir, "embeddings/")}')
 
 
 if __name__ == "__main__":
@@ -68,6 +72,12 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="save evaluation metrics (default: False)",
     )
+    parser.add_argument(
+        "--s3_dir",
+        default=None,
+        type=str,
+        help="save embeddings, results and metrics to the given s3 sirectory (default: None)",
+    )
 
     args = parser.parse_args()
     config = json.load(open(args.config))
@@ -75,4 +85,4 @@ if __name__ == "__main__":
     if args.device is not None:
         config["gpus"] = args.device
 
-    results = test_zeroshot(config, args.test_csv, args.device, args.eval)
+    results = test_zeroshot(config, args.test_csv, args.device, args.eval, args.s3_dir)

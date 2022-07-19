@@ -117,7 +117,7 @@ def run_zeroshot(
         prompt_embeddings = None
 
     model = ZeroShotWrapper(candidate_labels, prompt_pattern, model_name, device, prompt_embeddings)
-    run(
+    return run(
         model,
         dataset,
         embeddings=embeddings,

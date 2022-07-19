@@ -69,8 +69,10 @@ def save_metrics(results_file, config):
     targets = labels[classes].to_numpy()
 
     metrics = evaluate(scores, targets)
-    with open(os.path.join(dir, f"metrics_{results_name}.json"), "w") as f:
+    metrics_file = os.path.join(dir, f"metrics_{results_name}.json")
+    with open(metrics_file, "w") as f:
         json.dump(metrics, f)
+    return metrics_file
 
 
 if __name__ == "__main__":
