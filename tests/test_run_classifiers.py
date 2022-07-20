@@ -172,10 +172,18 @@ def test_save_load_embeddings(tmp_path):
             overwrite=True,
         )
         # Test indices in result
-        results = pd.read_csv(tmp_path / "tests/results_TEST_IDS.csv", sep=",", dtype={"id": "string"})
-        results_11 = pd.read_csv(tmp_path / "tests//results_TEST_IDS_1-1.csv", sep=",", dtype={"id": "string"})
-        results_1 = pd.read_csv(tmp_path / "tests/results_TEST_IDS_1.csv", sep=",", dtype={"id": "string"})
-        results_2 = pd.read_csv(tmp_path / "tests/results_TEST_IDS_2.csv", sep=",", dtype={"id": "string"})
+        results = pd.read_csv(
+            tmp_path / "tests/results_TEST_IDS_This_text_is_about_{}.csv", sep=",", dtype={"id": "string"}
+        )
+        results_11 = pd.read_csv(
+            tmp_path / "tests/results_TEST_IDS_1-1_This_text_is_about_{}.csv", sep=",", dtype={"id": "string"}
+        )
+        results_1 = pd.read_csv(
+            tmp_path / "tests/results_TEST_IDS_1_This_text_is_about_{}.csv", sep=",", dtype={"id": "string"}
+        )
+        results_2 = pd.read_csv(
+            tmp_path / "tests/results_TEST_IDS_2_This_text_is_about_{}.csv", sep=",", dtype={"id": "string"}
+        )
         assert results.sort_values(by="id").id.to_list() == ["1", "1-1", "2"]
         assert results.loc[results.id == "1-1"].violence.to_list()[0] == results_11.violence[0]
         assert results.loc[results.id == "1"].violence.to_list()[0] == results_1.violence[0]
@@ -189,7 +197,7 @@ def test_save_load_embeddings(tmp_path):
             data_path,
             model_name="bart",
             embeddings_file=tmp_path / f"tests/embeddings_TEST_IDS.{ext}",
-            prompt_embeddings_file=tmp_path / f"tests/prompt_embeddings_TEST_IDS.{ext}",
+            prompt_embeddings_file=tmp_path / f"tests/prompt_embeddings_TEST_IDS_This_text_is_about_{{}}.{ext}",
             batch_size=1,
             device="cuda",
             prompt_pattern="This text is about {}",
@@ -198,7 +206,9 @@ def test_save_load_embeddings(tmp_path):
             save_embeddings_to=format,
             overwrite=True,
         )
-        results_emb = pd.read_csv(tmp_path / "tests/results_TEST_IDS_EMB.csv", sep=",", dtype={"id": "string"})
+        results_emb = pd.read_csv(
+            tmp_path / "tests/results_TEST_IDS_EMB_This_text_is_about_{}.csv", sep=",", dtype={"id": "string"}
+        )
         assert (
             results.loc[results.id == "1-1"].violence.to_list()[0]
             == results_emb.loc[results.id == "1-1"].violence.to_list()[0]
