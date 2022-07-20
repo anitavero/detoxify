@@ -87,7 +87,7 @@ def run_zeroshot(
         save_name = os.path.splitext(os.path.basename(save_to))[0]
         save_dir = os.path.dirname(save_to)
     else:
-        save_name = f'{model_name}_{dataset_name}_{"_".join(prompt_pattern.split())}'
+        save_name = f"{model_name}_{dataset_name}"
         save_dir = os.path.dirname(data_path)
 
     print("Prompt pattern:", prompt_pattern)

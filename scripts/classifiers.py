@@ -131,8 +131,9 @@ def run(
             yield your_list[i : min(i + bs, ln)]
 
     files = {}
+    prompt_pattern = "_".join(model.hypothesis_template.split())
     # save empty csv file where the results will be saved
-    res_file = os.path.join(save_dir, f"results_{save_name}.csv")
+    res_file = os.path.join(save_dir, f"results_{save_name}_{prompt_pattern}.csv")
     files["results"] = res_file
     if os.path.exists(res_file) and overwrite is False:
         if not ask_to_proceed_with_overwrite(res_file):
@@ -144,7 +145,7 @@ def run(
         emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext}")
         is_zeroshot = isinstance(model, ZeroShotWrapper)
         if is_zeroshot:
-            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}.{ext}")
+            prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}_{prompt_pattern}.{ext}")
         else:
             prompt_file = ""
         exists = [emb_file if os.path.exists(emb_file) else None, prompt_file if os.path.exists(prompt_file) else None]
