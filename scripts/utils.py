@@ -1,4 +1,41 @@
+import os
+import pickle as pkl
 import sys
+
+import numpy as np
+
+
+def read_pickle_batches(file_name):
+    with open(file_name, "rb") as f:
+        try:
+            while True:
+                yield pkl.load(f)
+        except EOFError:
+            pass
+
+
+def read_pickle(data_file):
+    embeddings = None
+    ids = []
+    metadata = None
+    for batch in read_pickle_batches(data_file):
+        ids += batch["id"]
+        bemb = batch["embeddings"]
+        if not isinstance(embeddings, np.ndarray):
+            embeddings = bemb
+        else:
+            embeddings = np.vstack((embeddings, bemb))
+        if "metadata" in batch.keys():
+            metadata = batch["metadata"]
+    return ids, embeddings, metadata
+
+
+def load_embeddings(data_file):
+    ext = os.path.splitext(data_file)[1]
+    if ext == ".pkl":
+        return read_pickle(data_file)
+    else:
+        raise Exception("Only .pkl embedding file can be loaded")
 
 
 def ask_to_proceed_with_overwrite(filepath):
