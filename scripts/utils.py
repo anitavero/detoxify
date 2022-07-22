@@ -57,3 +57,13 @@ def ask_to_proceed_with_overwrite(filepath):
         return False
     print("[TIP] Next time specify --overwrite!")
     return True
+
+
+def get_set_aws_credentials():
+    credentials = input("Paste credentials file content:")
+    while credentials == "":
+        credentials = input("Paste credentials file content:")
+    _, key, secret_key, token = credentials.split("\n")
+    os.environ["aws_access_key_id"] = key.split("aws_access_key_id=")[1]
+    os.environ["aws_secret_access_key"] = secret_key.split("aws_secret_access_key=")[1]
+    os.environ["aws_session_token"] = token.split("aws_session_token=")[1]

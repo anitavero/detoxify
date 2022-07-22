@@ -95,7 +95,7 @@ class ZeroShotWrapper(NShotWrapper):
         }
 
 
-class FewShotWrapper(NShotWrapper, pl.LightningModule):
+class FewShotWrapper(NShotWrapper):
     """
     Fewshot models: train an MLP on top of pretrained embeddings.
     Args:
@@ -130,10 +130,14 @@ def run(
         for i in range(0, ln, bs):
             yield your_list[i : min(i + bs, ln)]
 
+    is_zeroshot = isinstance(model, ZeroShotWrapper)
+
     files = {}
-    prompt_pattern = "_".join(model.hypothesis_template.split())
     # save empty csv file where the results will be saved
-    res_file = os.path.join(save_dir, f"results_{save_name}_{prompt_pattern}.csv")
+    res_file = os.path.join(save_dir, f"results_{save_name}.csv")
+    if is_zeroshot:
+        prompt_pattern = "_".join(model.hypothesis_template.split())
+        res_file = re.sub(".csv", f"_{prompt_pattern}.csv", res_file)
     files["results"] = res_file
     if os.path.exists(res_file) and overwrite is False:
         if not ask_to_proceed_with_overwrite(res_file):
@@ -143,7 +147,6 @@ def run(
         ext = {"pickle": "pkl"}[save_embeddings_to]  # For future extentions with further formats
         # open file for embedding batches
         emb_file = os.path.join(save_dir, f"embeddings_{save_name}.{ext}")
-        is_zeroshot = isinstance(model, ZeroShotWrapper)
         if is_zeroshot:
             prompt_file = os.path.join(save_dir, f"prompt_embeddings_{save_name}_{prompt_pattern}.{ext}")
         else:
