@@ -85,7 +85,7 @@ def finetune(config, device="cuda:0", s3_dir=None):
                     for file in files:
                         os.system(f'aws s3 cp {file["embeddings"]} {os.path.join(s3_dir, "embeddings/")}')
                     done = True
-                except Error:
+                except Error:  # TODO: Test
                     get_set_aws_credentials()
 
 
