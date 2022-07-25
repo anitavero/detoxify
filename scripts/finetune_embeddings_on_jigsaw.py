@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 
+import numpy as np
+
 import pandas as pd
 from model_eval.eval_predictions import evaluate
 from sklearn.neural_network import MLPClassifier
@@ -31,32 +33,46 @@ def finetune(config, device="cuda:0", s3_dir=None):
 
     for model_name in model_names:
         print(model_name)
-        train_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_train.pkl")
-        test_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_test.pkl")
         files = []
-        for data_path, pkl_path in [(train_path, train_emb_file), (test_path, test_emb_file)]:
-            if not os.path.exists(pkl_path):
-                print("Save embeddings to", pkl_path)
-                files.append(
-                    run_zeroshot(
-                        data_path,
-                        candidate_labels=classes,
-                        model_name=model_name,
-                        embeddings_file=None,
-                        prompt_embeddings_file=None,
-                        batch_size=config["batch_size"],
-                        device=device,
-                        prompt_pattern="This text is about {}",
-                        save_to="",
-                        save_embeddings_to="pickle",
-                        overwrite=True,
-                        id_column="id",
-                        text_column="comment_text",
+        if model_name != "random":
+            train_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_train.pkl")
+            test_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_test.pkl")
+            for data_path, pkl_path in [(train_path, train_emb_file), (test_path, test_emb_file)]:
+                if not os.path.exists(pkl_path):
+                    print("Save embeddings to", pkl_path)
+                    files.append(
+                        run_zeroshot(
+                            data_path,
+                            candidate_labels=classes,
+                            model_name=model_name,
+                            embeddings_file=None,
+                            prompt_embeddings_file=None,
+                            batch_size=config["batch_size"],
+                            device=device,
+                            prompt_pattern="This text is about {}",
+                            save_to="",
+                            save_embeddings_to="pickle",
+                            overwrite=True,
+                            id_column="id",
+                            text_column="comment_text",
+                        )
                     )
-                )
 
-        ids, train_embeddings, metadata = load_embeddings(train_emb_file)
-        ids, test_embeddings, metadata = load_embeddings(test_emb_file)
+            ids, train_embeddings, metadata = load_embeddings(train_emb_file)
+            ids, test_embeddings, metadata = load_embeddings(test_emb_file)
+        else:
+            n_train = train_labels.shape[0]
+            n_test = test_labels.shape[0]
+            # t5-large 1024
+            # t5-xl    2048
+            # bart     1024
+            # roberta  1024
+            d = 1024
+            seed = 2022
+            rng = np.random.default_rng(seed)
+            model_name += f"_d_{d}_seed_{seed}"
+            train_embeddings = rng.random((n_train, d))
+            test_embeddings = rng.random((n_test, d))
 
         y_test = test_labels[classes].to_numpy()
         y_train = train_labels[classes].to_numpy()
