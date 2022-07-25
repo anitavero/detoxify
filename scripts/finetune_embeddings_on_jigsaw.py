@@ -1,13 +1,12 @@
 import argparse
 import json
 import os
-from msilib.schema import Error
 
 import pandas as pd
 from model_eval.eval_predictions import evaluate
 from sklearn.neural_network import MLPClassifier
 
-from utils import get_set_aws_credentials, load_embeddings
+from utils import load_embeddings
 
 from scripts.run_classifiers import run_zeroshot
 
