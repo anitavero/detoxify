@@ -78,15 +78,9 @@ def finetune(config, device="cuda:0", s3_dir=None):
 
         if s3_dir is not None:
             print("Copying to S3")
-            done = False
-            while not done:
-                try:
-                    os.system(f'aws s3 cp {metrics_file} {os.path.join(s3_dir, "results/")}')
-                    for file in files:
-                        os.system(f'aws s3 cp {file["embeddings"]} {os.path.join(s3_dir, "embeddings/")}')
-                    done = True
-                except Error:  # TODO: Test
-                    get_set_aws_credentials()
+            os.system(f'aws s3 cp {metrics_file} {os.path.join(s3_dir, "results/")}')
+            for file in files:
+                os.system(f'aws s3 cp {file["embeddings"]} {os.path.join(s3_dir, "embeddings/")}')
 
 
 if __name__ == "__main__":
