@@ -1,0 +1,4 @@
+{
+    "s3_dir": "s3://unitary.ai.datasets/detoxify_datasets/jigsaw-toxic-comment-classification-challenge",
+    "local_dir": "/home/ubuntu/dev/detoxify/jigsaw-toxic-comment-classification-challenge/data"
+}
