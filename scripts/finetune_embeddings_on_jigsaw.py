@@ -6,6 +6,7 @@ import numpy as np
 
 import pandas as pd
 from model_eval.eval_predictions import evaluate
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 
 from utils import load_embeddings
@@ -17,7 +18,8 @@ def finetune(config, device="cuda:0", s3_dir=None):
     train_path = config["dataset"]["args"]["train_csv_file"]
     test_labels_path = config["dataset"]["args"]["test_labels_csv_file"]
     test_path = config["dataset"]["args"]["test_csv_file"]
-    data_dir = os.path.dirname(train_path)
+    emb_dir = config["arch"]["args"]["embeddings_dir"]
+    results_dir = config["arch"]["args"]["results_dir"]
 
     test_labels = pd.read_csv(test_labels_path, dtype={"id": "string"})
     train_labels = pd.read_csv(train_path, dtype={"id": "string"})
@@ -27,6 +29,12 @@ def finetune(config, device="cuda:0", s3_dir=None):
     assert classes == train_classes
     classes.remove("id")
 
+    classifier_name = config["arch"]["args"]["classifier"]
+    # classifier = {
+    #     "forest": RandomForestClassifier,
+    #     "mlp": MLPClassifier
+    # }[classifier_name]
+
     model_names = config["arch"]["args"]["model_name"]
     if isinstance(model_names, str):
         model_names = [model_names]
@@ -35,8 +43,8 @@ def finetune(config, device="cuda:0", s3_dir=None):
         print(model_name)
         files = []
         if model_name != "random":
-            train_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_train.pkl")
-            test_emb_file = os.path.join(data_dir, f"embeddings_{model_name}_test.pkl")
+            train_emb_file = os.path.join(emb_dir, f"embeddings_{model_name}_train.pkl")
+            test_emb_file = os.path.join(emb_dir, f"embeddings_{model_name}_test.pkl")
             for data_path, pkl_path in [(train_path, train_emb_file), (test_path, test_emb_file)]:
                 if not os.path.exists(pkl_path):
                     print("Save embeddings to", pkl_path)
@@ -57,7 +65,7 @@ def finetune(config, device="cuda:0", s3_dir=None):
                             text_column="comment_text",
                         )
                     )
-
+            print("Load embeddings")
             ids, train_embeddings, metadata = load_embeddings(train_emb_file)
             ids, test_embeddings, metadata = load_embeddings(test_emb_file)
         else:
@@ -81,13 +89,18 @@ def finetune(config, device="cuda:0", s3_dir=None):
         y_test_m = y_test[mask, :]
         test_embeddings_m = test_embeddings[mask, :]
 
-        clf = MLPClassifier(random_state=1, max_iter=300, verbose=True).fit(train_embeddings, y_train)
+        print("Train")
+        if classifier_name == "mlp":
+            clf = MLPClassifier(random_state=1, max_iter=500, verbose=True).fit(train_embeddings, y_train)
+        elif classifier_name == "forest":
+            clf = RandomForestClassifier(random_state=1, n_jobs=6, verbose=True).fit(train_embeddings, y_train)
 
+        print("Predict")
         scores = clf.predict_proba(test_embeddings_m)
         metrics = evaluate(scores, y_test_m)
         print("Mean Acc:", clf.score(test_embeddings_m, y_test_m))
         print(metrics)
-        metrics_file = os.path.join(data_dir, f"metrics_finetune_{model_name}.json")
+        metrics_file = os.path.join(results_dir, f"metrics_finetune_{model_name}_{classifier_name}.json")
         with open(metrics_file, "w") as f:
             json.dump(metrics, f)
 
