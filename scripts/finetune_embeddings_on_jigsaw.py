@@ -92,11 +92,16 @@ def finetune(config, device="cuda:0", s3_dir=None):
         print("Train")
         if classifier_name == "mlp":
             clf = MLPClassifier(random_state=1, max_iter=500, verbose=True).fit(train_embeddings, y_train)
+            predict_prob = clf.predict_proba
         elif classifier_name == "forest":
-            clf = RandomForestClassifier(random_state=1, n_jobs=6, verbose=True).fit(train_embeddings, y_train)
+            clf = RandomForestClassifier(random_state=1, n_jobs=7, verbose=True).fit(train_embeddings, y_train)
+
+            def predict_prob(embs):
+                preds = clf.predict_proba(embs)
+                return np.column_stack([x[:, 1] for x in preds])
 
         print("Predict")
-        scores = clf.predict_proba(test_embeddings_m)
+        scores = predict_prob(test_embeddings_m)
         metrics = evaluate(scores, y_test_m)
         print("Mean Acc:", clf.score(test_embeddings_m, y_test_m))
         print(metrics)
