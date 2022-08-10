@@ -30,10 +30,6 @@ def finetune(config, device="cuda:0", s3_dir=None):
     classes.remove("id")
 
     classifier_name = config["arch"]["args"]["classifier"]
-    # classifier = {
-    #     "forest": RandomForestClassifier,
-    #     "mlp": MLPClassifier
-    # }[classifier_name]
 
     model_names = config["arch"]["args"]["model_name"]
     if isinstance(model_names, str):
@@ -98,7 +94,6 @@ def finetune(config, device="cuda:0", s3_dir=None):
 
             def predict_prob(embs):
                 preds = clf.predict_proba(embs)
-                return np.column_stack([x[:, 1] for x in preds])
 
         print("Predict")
         scores = predict_prob(test_embeddings_m)
