@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from model_eval.eval_predictions import evaluate
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neural_network import MLPClassifier
 
 from utils import load_embeddings
@@ -87,20 +88,22 @@ def finetune(config, device="cuda:0", s3_dir=None):
 
         print("Train")
         if classifier_name == "mlp":
-            clf = MLPClassifier(random_state=1, max_iter=500, verbose=True).fit(train_embeddings, y_train)
-            predict_prob = clf.predict_proba
+            clf = MLPClassifier(random_state=1, max_iter=500, verbose=True)
         elif classifier_name == "forest":
-            clf = RandomForestClassifier(random_state=1, n_jobs=7, verbose=True).fit(train_embeddings, y_train)
+            clf = RandomForestClassifier(random_state=1, n_jobs=7, verbose=True)
 
-            def predict_prob(embs):
-                preds = clf.predict_proba(embs)
+        mo_clf = MultiOutputClassifier(estimator=clf).fit(train_embeddings, y_train)
+
+        def predict_prob(embs):
+            preds = mo_clf.predict_proba(embs)
+            return np.column_stack([p[:, 1] for p in preds])
 
         print("Predict")
         scores = predict_prob(test_embeddings_m)
         metrics = evaluate(scores, y_test_m)
         print("Mean Acc:", clf.score(test_embeddings_m, y_test_m))
         print(metrics)
-        metrics_file = os.path.join(results_dir, f"metrics_finetune_{model_name}_{classifier_name}.json")
+        metrics_file = os.path.join(results_dir, f"metrics_finetune_{model_name}_{classifier_name}_multioutput.json")
         with open(metrics_file, "w") as f:
             json.dump(metrics, f)
 
