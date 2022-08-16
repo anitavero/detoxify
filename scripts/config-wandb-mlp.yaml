@@ -1,0 +1,43 @@
+---
+name: sklearn-sweep
+method: random
+metric:
+  name: mean_auc
+  goal: maximize
+parameters:
+  # mlp
+  # learning_rate:
+  #   min: 0.0001
+  #   max: 0.1
+  hidden_layer_sizes:
+    values:
+      - [100]
+      - [300]
+      - [300, 100]
+      # - [300, 300]
+  # activation:
+  #   values: [relu, tanh]
+  # solver:
+  #   values: [adam]
+  alpha:
+    values: [0.0001, 0.001]
+  # batch_size:
+  #   values: [auto]
+  learning_rate:
+    values: [constant, adaptive]
+  # max_iter:
+  #   values: [400]
+  # # shuffle: [True, False]
+  # # tol: [0.0001]
+  # warm_start:
+  #   values: [False, True]
+  # early_stopping:
+  #   values: [True]
+  # validation_fraction:
+  #   values: [0.2]
+  # # beta_1: [0.9]
+  # # beta_2: [0.999]
+  # epsilon:
+  #   values: [1e-08, 1e-04]
+  # n_iter_no_change:
+  #   values: [10]

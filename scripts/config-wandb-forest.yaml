@@ -1,0 +1,20 @@
+---
+name: sklearn-sweep
+method: random
+metric:
+  name: mean_auc
+  goal: maximize
+parameters:
+  n_estimators:
+    values: [10, 100]
+  criterion:
+    values: [gini, entropy, log_loss]
+  # max_features:
+  #   values: [sqrt, log2]
+  # warm_start:
+  #   values: [False, True]
+  # min_impurity_decrease: []
+  # bootstrap: [True]
+  # oob_score: [False]
+  # ccp_alpha: [0.0]
+  # max_samples: [None]
