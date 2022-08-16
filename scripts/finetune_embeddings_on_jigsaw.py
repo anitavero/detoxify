@@ -129,13 +129,10 @@ def train(
 ):
     print("Train")
 
-    def params(model):
-        {p: val for p, val in param_config.items() if p in getfullargspec(model).args}
-
     if classifier_name == "mlp":
-        clf = MLPClassifier(verbose=True, **params(MLPClassifier))
+        clf = MLPClassifier(verbose=True, **param_config)
     elif classifier_name == "forest":
-        clf = RandomForestClassifier(n_jobs=7, verbose=True, **params(RandomForestClassifier))
+        clf = RandomForestClassifier(n_jobs=7, verbose=True, **param_config)
 
     mo_clf = MultiOutputClassifier(estimator=clf).fit(train_embeddings, y_train)
 
@@ -146,7 +143,6 @@ def train(
     print("Predict")
     scores = predict_prob(test_embeddings_m)
     metrics = evaluate(scores, y_test_m)
-    print("Mean Acc:", clf.score(test_embeddings_m, y_test_m))
     print(metrics)
     if save_metrics:
         metrics_file = os.path.join(results_dir, f"metrics_finetune_{model_name}_{classifier_name}_multioutput.json")
@@ -185,7 +181,7 @@ def sweep(
         )
         wandb.log({"mean_auc": metrics["mean_auc"]})
 
-    count = 10  # number of runs to execute
+    count = 5  # number of runs to execute
     wandb.agent(sweep_id, function=run_train, count=count)
 
 

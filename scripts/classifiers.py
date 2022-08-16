@@ -6,8 +6,8 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import torch
+import torch.nn as nn
 from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
@@ -107,6 +107,34 @@ class FewShotWrapper(NShotWrapper):
 
     def predict(self, input_text: Union[str, List[str]], embeddings: Optional[np.ndarray] = None) -> dict:
         input_embeddings = self.encode(input_text, embeddings)
+
+
+class MLP(nn.Module):
+    def __init__(self, num_classes, num_features, hidden_layer_sizes=[[300]], p=0.2):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Dropout(p),
+            nn.Linear(num_features, num_features),
+            nn.BatchNorm1d(num_features),
+            nn.ReLU(),
+            nn.Linear(num_features, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.layers(x)
+        return x
+
+
+class LinearProbe(nn.Module):
+    def __init__(self, num_classes, num_features):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(num_features, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.layers(x)
+        return x
 
 
 def run(
