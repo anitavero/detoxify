@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import auc, precision_recall_curve, roc_auc_score
 
 from src.data_loaders import JigsawDataBias, JigsawDataMultilingual, JigsawDataOriginal
 from torch.utils.data import DataLoader
@@ -14,7 +14,8 @@ from torch.utils.data import DataLoader
 
 def evaluate(scores, targets):
     """Evaluate model prediction scores."""
-    auc_scores = []
+    roc_auc_scores = []
+    pr_auc_scores = []
     for class_idx in range(scores.shape[1]):
         # labels for the test data; value of -1 indicates it was not used for scoring
         # from https://www.kaggle.com/competitions/jigsaw-toxic-comment-classification-challenge/data
@@ -22,19 +23,26 @@ def evaluate(scores, targets):
         target_binary = targets[mask, class_idx]
         class_scores = scores[mask, class_idx]
         try:
-            auc = roc_auc_score(target_binary, class_scores)
-            auc_scores.append(auc)
+            # ROC AUC
+            roc_auc = roc_auc_score(target_binary, class_scores)
+            roc_auc_scores.append(roc_auc)
+            # PR AUC
+            precision, recall, _ = precision_recall_curve(target_binary, class_scores)
+            pr_auc_scores.append(auc(recall, precision))
         except Exception:
             warnings.warn(
                 "Only one class present in y_true. ROC AUC score is not defined in that case. Set to nan for now."
             )
-            auc_scores.append(np.nan)
+            roc_auc_scores.append(np.nan)
 
-    mean_auc = np.mean(auc_scores)
+    mean_auc = np.mean(roc_auc_scores)
+    mean_pr_auc = np.mean(pr_auc_scores)
 
     results = {
-        "auc_scores": auc_scores,
+        "auc_scores": roc_auc_scores,
         "mean_auc": mean_auc,
+        "pr_auc_scores": pr_auc_scores,
+        "mean_pr_auc": mean_pr_auc,
     }
 
     return results

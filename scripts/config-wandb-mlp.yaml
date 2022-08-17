@@ -14,27 +14,28 @@ parameters:
       - [100]
       - [300]
       - [300, 100]
-      # - [300, 300]
+      - [300, 300]
   # activation:
   #   values: [relu, tanh]
   # solver:
   #   values: [adam]
   alpha:
-    values: [0.0001, 0.001]
+    values: [0.00001, 0.0001, 0.001]
   # batch_size:
   #   values: [auto]
   learning_rate:
-    values: [constant, adaptive]
+    values: [adaptive]
   # max_iter:
   #   values: [400]
-  # # shuffle: [True, False]
+  shuffle:
+    values: [True, False]
   # # tol: [0.0001]
-  # warm_start:
-  #   values: [False, True]
-  # early_stopping:
-  #   values: [True]
-  # validation_fraction:
-  #   values: [0.2]
+  warm_start:
+    values: [False, True]
+  early_stopping:
+    values: [True, False]
+  validation_fraction:
+    values: [0.2, 0.1]
   # # beta_1: [0.9]
   # # beta_2: [0.999]
   # epsilon:
