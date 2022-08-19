@@ -22,8 +22,8 @@ def finetune(config, sweep_config=None, action="train", device="cuda:0", s3_dir=
     train_path = config["dataset"]["args"]["train_csv_file"]
     test_labels_path = config["dataset"]["args"]["test_labels_csv_file"]
     test_path = config["dataset"]["args"]["test_csv_file"]
-    emb_dir = config["arch"]["args"]["embeddings_dir"]
-    results_dir = config["arch"]["args"]["results_dir"]
+    emb_dir = config["embeddings_dir"]
+    results_dir = config["results_dir"]
 
     test_labels = pd.read_csv(test_labels_path, dtype={"id": "string"})
     train_labels = pd.read_csv(train_path, dtype={"id": "string"})
@@ -33,9 +33,9 @@ def finetune(config, sweep_config=None, action="train", device="cuda:0", s3_dir=
     assert classes == train_classes
     classes.remove("id")
 
-    classifier_name = config["arch"]["args"]["classifier"]
+    classifier_name = config["arch"]["classifier"]
 
-    model_names = config["arch"]["args"]["model_name"]
+    model_names = config["arch"]["model_name"]
     if isinstance(model_names, str):
         model_names = [model_names]
 
@@ -73,6 +73,7 @@ def finetune(config, sweep_config=None, action="train", device="cuda:0", s3_dir=
             n_test = test_labels.shape[0]
             # t5-large 1024
             # t5-xl    2048
+            # t5-xxl   4096
             # bart     1024
             # roberta  1024
             d = 1024
@@ -91,6 +92,7 @@ def finetune(config, sweep_config=None, action="train", device="cuda:0", s3_dir=
 
         if action == "train":
             train(
+                config["arch"]["args"],
                 classifier_name,
                 train_embeddings,
                 y_train,
@@ -115,6 +117,7 @@ def finetune(config, sweep_config=None, action="train", device="cuda:0", s3_dir=
 
 
 def train(
+    classifier_args,
     classifier_name,
     train_embeddings,
     y_train,
@@ -122,7 +125,6 @@ def train(
     y_test_m,
     results_dir,
     model_name,
-    param_config,
     s3_dir=None,
     embedding_files=None,
     save_metrics=True,
@@ -130,9 +132,9 @@ def train(
     print("Train")
 
     if classifier_name == "mlp":
-        clf = MLPClassifier(verbose=True, **param_config)
+        clf = MLPClassifier(verbose=True, **classifier_args)
     elif classifier_name == "forest":
-        clf = RandomForestClassifier(n_jobs=7, verbose=True, **param_config)
+        clf = RandomForestClassifier(n_jobs=7, verbose=True, **classifier_args)
 
     mo_clf = MultiOutputClassifier(estimator=clf).fit(train_embeddings, y_train)
 
