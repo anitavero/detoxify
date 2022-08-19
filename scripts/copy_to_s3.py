@@ -8,6 +8,8 @@ def copy_to_s3(file_pattern, s3_config="scripts/s3_config.json", embeddings=True
     with open(s3_config) as f:
         config = json.load(f)
     files = glob(os.path.join(config["local_dir"], f"*{file_pattern}*"))
+    if files == []:
+        files = glob(os.path.join(config["local_dir"], f"*/*{file_pattern}*"))
     if embeddings:
         for file in filter(lambda x: "embeddings" in x, files):
             os.system(f'aws s3 cp {file} {os.path.join(config["s3_dir"], "embeddings/")}')
