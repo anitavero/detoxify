@@ -12,6 +12,8 @@ from sentence_transformers import SentenceTransformer, util
 from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
+from ..train import ToxicClassifier
+
 from .utils import ask_to_proceed_with_overwrite
 
 
@@ -109,7 +111,7 @@ class FewShotWrapper(NShotWrapper):
         input_embeddings = self.encode(input_text, embeddings)
 
 
-class MLP(nn.Module):
+class FinetuneMLP(ToxicClassifier):
     def __init__(self, num_classes, num_features, hidden_layer_sizes=[[300]], p=0.2):
         super().__init__()
         self.layers = nn.Sequential(
@@ -125,7 +127,7 @@ class MLP(nn.Module):
         return x
 
 
-class LinearProbe(nn.Module):
+class FinetuneLinearProbe(ToxicClassifier):
     def __init__(self, num_classes, num_features):
         super().__init__()
         self.layers = nn.Sequential(

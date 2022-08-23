@@ -5,6 +5,7 @@ import os
 import pytorch_lightning as pl
 import src.data_loaders as module_data
 import torch
+import torch.nn as nn
 from pytorch_lightning.callbacks import ModelCheckpoint
 from src.utils import get_model_and_tokenizer
 from torch.nn import functional as F
@@ -23,7 +24,8 @@ class ToxicClassifier(pl.LightningModule):
         self.save_hyperparameters()
         self.num_classes = config["arch"]["args"]["num_classes"]
         self.model_args = config["arch"]["args"]
-        self.model, self.tokenizer = get_model_and_tokenizer(**self.model_args)
+        if "tokenizer_name" in self.model_args:
+            self.model, self.tokenizer = get_model_and_tokenizer(**self.model_args)
         self.bias_loss = False
 
         if "loss_weight" in config:
@@ -135,6 +137,24 @@ class ToxicClassifier(pl.LightningModule):
         return torch.tensor(correct)
 
 
+class FinetuneMLP(ToxicClassifier):
+    def __init__(self, config):
+        super().__init__(config)
+        self.num_features = config["arch"]["args"]["num_features"]
+        self.p = config["arch"]["args"]["p"]
+        self.layers = nn.Sequential(
+            nn.Dropout(self.p),
+            nn.Linear(self.num_features, self.num_features),
+            nn.BatchNorm1d(self.num_features),
+            nn.ReLU(),
+            nn.Linear(self.num_features, self.num_classes),
+        )
+
+    def forward(self, x):
+        x = self.layers(x)
+        return x
+
+
 def cli_main():
     pl.seed_everything(1234)
 
@@ -159,7 +179,7 @@ def cli_main():
         "--device",
         default=None,
         type=str,
-        help="indices of GPUs to enable (default: all)",
+        help="indices of GPUs to enable (default: all)",  # TODO: default is cpu
     )
     parser.add_argument(
         "--num_workers",
@@ -198,7 +218,11 @@ def cli_main():
         shuffle=False,
     )
     # model
-    model = ToxicClassifier(config)
+    if config["arch"]["type"] == "finetune":
+        config["arch"]["args"]["num_features"] = dataset.embeddings.shape[1]
+        model = FinetuneMLP(config)
+    else:
+        model = ToxicClassifier(config)
 
     # training
 

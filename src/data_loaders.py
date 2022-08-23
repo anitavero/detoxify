@@ -2,6 +2,8 @@ import datasets
 import numpy as np
 import pandas as pd
 import torch
+
+from scripts.utils import load_embeddings
 from torch.utils.data.dataset import Dataset
 from tqdm import tqdm
 
@@ -215,3 +217,63 @@ class JigsawDataMultilingual(JigsawData):
         meta["text_id"] = text_id
 
         return text, meta
+
+
+class JigsawOriginalEmbeddings(JigsawData):
+    """Embedding Dataloader."""
+
+    def __init__(
+        self,
+        train_csv_file,
+        test_csv_file,
+        train_embeddings_file,
+        test_embeddings_file,
+        classes,
+        train=True,
+        add_test_labels=False,
+    ):
+
+        super().__init__(
+            train_csv_file=train_csv_file,
+            test_csv_file=test_csv_file,
+            train=train,
+            add_test_labels=add_test_labels,
+        )
+
+        if train:
+            print("Load train embeddings")
+            self.ids, self.embeddings, self.metadata = load_embeddings(train_embeddings_file)
+        else:
+            print("Load test embeddings")
+            self.ids, self.embeddings, self.metadata = load_embeddings(test_embeddings_file)
+
+        self.classes = classes
+
+    def __getitem__(self, index):
+        meta = {}
+        entry = self.data[index]
+        target_dict = {label: value for label, value in entry.items() if label in self.classes}
+        meta["multi_target"] = torch.tensor(list(target_dict.values()), dtype=torch.int32)
+        return self.embeddings[index], meta
+
+    def __len__(self):
+        return len(self.embeddings)
+
+    def load_val(self, test_csv_file, add_labels=False):
+        change_names = {
+            "target": "toxicity",
+            "toxic": "toxicity",
+            "identity_hate": "identity_attack",
+            "severe_toxic": "severe_toxicity",
+        }
+
+        val_set = self.load_data(test_csv_file)
+        if add_labels:
+            data_labels = pd.read_csv(test_csv_file[:-4] + "_labels.csv")
+            for category in data_labels.columns[1:]:
+                val_set[category] = data_labels[category]
+        filtered_change_names = {k: v for k, v in change_names.items() if k in val_set.columns}
+        if len(filtered_change_names) > 0:
+            val_set.rename(columns=filtered_change_names, inplace=True)
+        val_set = datasets.Dataset.from_pandas(val_set)
+        return val_set
