@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from collections import OrderedDict
 
 import pytorch_lightning as pl
 import src.data_loaders as module_data
@@ -137,18 +138,25 @@ class ToxicClassifier(pl.LightningModule):
         return torch.tensor(correct)
 
 
-class FinetuneMLP(ToxicClassifier):
+class Finetune(ToxicClassifier):
     def __init__(self, config):
         super().__init__(config)
         self.num_features = config["arch"]["args"]["num_features"]
         self.p = config["arch"]["args"]["p"]
-        self.layers = nn.Sequential(
-            nn.Dropout(self.p),
-            nn.Linear(self.num_features, self.num_features),
-            nn.BatchNorm1d(self.num_features),
-            nn.ReLU(),
-            nn.Linear(self.num_features, self.num_classes),
-        )
+        self.hidden_layer_sizes = config["arch"]["args"]["hidden_layer_sizes"]
+        if self.hidden_layer_sizes == []:
+            self.layers = nn.Sequential(
+                nn.Linear(self.num_features, self.num_classes),
+            )
+        else:
+            layers = [("dropout0", nn.Dropout(self.p))]
+            layer_sizes = [self.num_features] + self.hidden_layer_sizes
+            for i in range(len(layer_sizes) - 1):
+                layers.append((f"linear{i+1}", nn.Linear(layer_sizes[i], layer_sizes[i + 1])))
+                layers.append((f"batchnorm1d{i+1}", nn.BatchNorm1d(layer_sizes[i + 1])))
+            layers.append(("relu", nn.ReLU()))
+            layers.append(("linear", nn.Linear(self.hidden_layer_sizes[-1], self.num_classes)))
+            self.layers = nn.Sequential(OrderedDict(layers))
 
     def forward(self, x):
         x = self.layers(x)
@@ -220,7 +228,7 @@ def cli_main():
     # model
     if config["arch"]["type"] == "finetune":
         config["arch"]["args"]["num_features"] = dataset.embeddings.shape[1]
-        model = FinetuneMLP(config)
+        model = Finetune(config)
     else:
         model = ToxicClassifier(config)
 

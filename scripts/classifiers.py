@@ -111,34 +111,6 @@ class FewShotWrapper(NShotWrapper):
         input_embeddings = self.encode(input_text, embeddings)
 
 
-class FinetuneMLP(ToxicClassifier):
-    def __init__(self, num_classes, num_features, hidden_layer_sizes=[[300]], p=0.2):
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.Dropout(p),
-            nn.Linear(num_features, num_features),
-            nn.BatchNorm1d(num_features),
-            nn.ReLU(),
-            nn.Linear(num_features, num_classes),
-        )
-
-    def forward(self, x):
-        x = self.layers(x)
-        return x
-
-
-class FinetuneLinearProbe(ToxicClassifier):
-    def __init__(self, num_classes, num_features):
-        super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(num_features, num_classes),
-        )
-
-    def forward(self, x):
-        x = self.layers(x)
-        return x
-
-
 def run(
     model,
     dataset,
