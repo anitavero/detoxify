@@ -138,7 +138,7 @@ class ToxicClassifier(pl.LightningModule):
         return torch.tensor(correct)
 
 
-class Finetune(ToxicClassifier):
+class FinetuneEmbeddings(ToxicClassifier):
     def __init__(self, config):
         super().__init__(config)
         self.num_features = config["arch"]["args"]["num_features"]
@@ -228,7 +228,7 @@ def cli_main():
     # model
     if config["arch"]["type"] == "finetune":
         config["arch"]["args"]["num_features"] = dataset.embeddings.shape[1]
-        model = Finetune(config)
+        model = FinetuneEmbeddings(config)
     else:
         model = ToxicClassifier(config)
 
