@@ -141,6 +141,8 @@ class ToxicClassifier(pl.LightningModule):
 class FinetuneEmbeddings(ToxicClassifier):
     def __init__(self, config):
         super().__init__(config)
+        # self.device = config["gpus"]
+
         self.num_features = config["arch"]["args"]["num_features"]
         self.p = config["arch"]["args"]["p"]
         self.hidden_layer_sizes = config["arch"]["args"]["hidden_layer_sizes"]
@@ -159,7 +161,8 @@ class FinetuneEmbeddings(ToxicClassifier):
             self.layers = nn.Sequential(OrderedDict(layers))
 
     def forward(self, x):
-        x = self.layers(x)
+        # x = self.layers(x.to(self.device))
+        x = self.layers(x.to("cuda:0"))
         return x
 
 

@@ -11,21 +11,15 @@ from sklearn.metrics import roc_auc_score
 from src.data_loaders import JigsawDataBias, JigsawDataMultilingual, JigsawDataOriginal
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from train import ToxicClassifier
+from train import FinetuneEmbeddings, ToxicClassifier
 
 
 def test_classifier(config, dataset, checkpoint_path, device="cuda:0"):
-
-    model = ToxicClassifier(config)
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["state_dict"])
-    model.eval()
-    model.to(device)
-
     def get_instance(module, name, config, *args, **kwargs):
         return getattr(module, config[name]["type"])(*args, **config[name]["args"], **kwargs)
 
-    config["dataset"]["args"]["test_csv_file"] = dataset
+    if dataset is not None:
+        config["dataset"]["args"]["test_csv_file"] = dataset
 
     test_dataset = get_instance(module_data, "dataset", config, train=False)
 
@@ -36,6 +30,17 @@ def test_classifier(config, dataset, checkpoint_path, device="cuda:0"):
         shuffle=False,
     )
 
+    # model
+    if config["arch"]["type"] == "finetune":
+        config["arch"]["args"]["num_features"] = test_dataset.embeddings.shape[1]
+        model = FinetuneEmbeddings(config)
+    else:
+        model = ToxicClassifier(config)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
+    model.eval()
+    model.to(device)
+
     scores = []
     targets = []
     ids = []
@@ -45,7 +50,8 @@ def test_classifier(config, dataset, checkpoint_path, device="cuda:0"):
         else:
             targets += meta["target"]
 
-        ids += meta["text_id"]
+        if "text_id" in meta:
+            ids += meta["text_id"]  # TODO
         with torch.no_grad():
             out = model.forward(*items)
             sm = torch.sigmoid(out).cpu().detach().numpy()
@@ -120,7 +126,12 @@ if __name__ == "__main__":
         config["gpus"] = args.device
 
     results = test_classifier(config, args.test_csv, args.checkpoint, args.device)
-    test_set_name = args.test_csv.split("/")[-1:][0]
+    if args.test_csv is not None:
+        test_set_name = args.test_csv.split("/")[-1:][0]
+    else:
+        test_set_name = config["dataset"]["args"]["test_csv_file"].split("/")[-1:][0]
 
-    with open(args.checkpoint[:-4] + f"results_{test_set_name}.json", "w") as f:
+    save_file = os.path.splitext(args.checkpoint)[0] + f"_results_{test_set_name}.json"
+    print("Saving results to", save_file)
+    with open(save_file, "w") as f:
         json.dump(results, f)
