@@ -1,0 +1,52 @@
+---
+name: pytorch-sweep
+method: random
+metric:
+  name: val/loss
+  goal: maximize
+parameters:
+  hidden_layer_sizes:
+    values:
+      - []  # Linear probe
+      - [100]
+      - [300]
+      - [300, 300]
+  lr:
+    distribution: log_uniform
+    min: -9.21 # 1e-4
+    max: -4.61 # 1e-2
+  weight_decay:
+    distribution: log_uniform
+    min: -9.21 # 1e-4
+    max: -4.61 # 1e-2
+  batch_size:
+    values: [100, 300]
+  p:
+    values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+
+  # TODO: weighted sampler?
+  # activation:
+  #   values: [relu, tanh]
+  # solver:
+  #   values: [adam]
+  # alpha:
+  #   values: [0.00001, 0.0001, 0.001]
+  # batch_size:
+  #   values: [auto]
+  # max_iter:
+  #   values: [400]
+  # shuffle:
+  #   values: [True, False]
+  # # tol: [0.0001]
+  # warm_start:
+  #   values: [False, True]
+  # early_stopping:
+  #   values: [True, False]
+  # validation_fraction:
+  #   values: [0.2, 0.1]
+  # # beta_1: [0.9]
+  # # beta_2: [0.999]
+  # epsilon:
+  #   values: [1e-08, 1e-04]
+  # n_iter_no_change:
+  #   values: [10]
