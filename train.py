@@ -161,8 +161,7 @@ class FinetuneEmbeddings(ToxicClassifier):
             self.layers = nn.Sequential(OrderedDict(layers))
 
     def forward(self, x):
-        # x = self.layers(x.to(self.device))
-        x = self.layers(x.to("cuda:0"))
+        x = self.layers(x.to(self.device))
         return x
 
 
