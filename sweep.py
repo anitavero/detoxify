@@ -103,4 +103,6 @@ if __name__ == "__main__":
     val_dataset = get_instance(module_data, "dataset", config, train=False)
 
     sweep_id = wandb.sweep(sweep_config)
-    wandb.agent(sweep_id, function=sweep_iteration(config, args, dataset, val_dataset))
+    # Workaround: wandb.agent can't receive functions with parameters
+    seep_iter_func = lambda: sweep_iteration(config, args, dataset, val_dataset)
+    wandb.agent(sweep_id, function=seep_iter_func)
