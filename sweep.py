@@ -13,7 +13,7 @@ from train import FinetuneEmbeddings, ToxicClassifier
 
 
 def sweep_iteration(config, args, dataset, val_dataset):
-    wandb.init()  # required to have access to `wandb.config`
+    wandb.init(entity="anitavero")  # required to have access to `wandb.config`
     wandb_logger = WandbLogger()
     config_slice = wandb.config
 
@@ -55,7 +55,7 @@ def sweep_iteration(config, args, dataset, val_dataset):
     # training
     trainer = pl.Trainer(
         logger=wandb_logger,
-        devices=args.n_gpu,
+        devices=config["n_gpu"],
         accelerator="gpu",
         callbacks=[EarlyStopping(monitor="val_loss", mode="min")],
         max_epochs=args.n_epochs,

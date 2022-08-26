@@ -48,7 +48,7 @@ class ToxicClassifier(pl.LightningModule):
         x, meta = batch
         output = self.forward(x)
         loss = self.binary_cross_entropy(output, meta)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, sync_dist=True)
         return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
@@ -56,8 +56,8 @@ class ToxicClassifier(pl.LightningModule):
         output = self.forward(x)
         loss = self.binary_cross_entropy(output, meta)
         acc = self.binary_accuracy(output, meta)
-        self.log("val_loss", loss)
-        self.log("val_acc", acc)
+        self.log("val_loss", loss, sync_dist=True)
+        self.log("val_acc", acc, sync_dist=True)
         return {"loss": loss, "acc": acc}
 
     def test_step(self, batch, batch_idx):
@@ -65,8 +65,8 @@ class ToxicClassifier(pl.LightningModule):
         output = self.forward(x)
         loss = self.binary_cross_entropy(output, meta)
         acc = self.binary_accuracy(output, meta)
-        self.log("test_loss", loss)
-        self.log("test_acc", acc)
+        self.log("test_loss", loss, sync_dist=True)
+        self.log("test_acc", acc, sync_dist=True)
         return {"loss": loss, "acc": acc}
 
     def configure_optimizers(self):
@@ -161,7 +161,7 @@ class FinetuneEmbeddings(ToxicClassifier):
             self.layers = nn.Sequential(OrderedDict(layers))
 
     def forward(self, x):
-        x = self.layers(x.to(self.gpus))
+        x = self.layers(x)
         return x
 
 
@@ -194,7 +194,7 @@ def cli_main():
     parser.add_argument(
         "--num_workers",
         default=10,
-        type=str,
+        type=int,
         help="number of workers used in the data loader (default: 10)",
     )
     parser.add_argument("-e", "--n_epochs", default=100, type=int, help="if given, override the num")

@@ -2,7 +2,7 @@
 name: pytorch-sweep
 method: random
 metric:
-  name: val/loss
+  name: val_loss
   goal: maximize
 parameters:
   hidden_layer_sizes:
