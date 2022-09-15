@@ -7,8 +7,8 @@ import numpy as np
 
 import pandas as pd
 
-from .classifiers import run, ZeroShotWrapper
-from .utils import load_embeddings
+from classifiers import run, ZeroShotWrapper
+from utils import load_embeddings
 
 
 DATASET_DESCRIPTION = 'The dataset needs to include an <id_column> and a <text_column> (default: "id", "text")'
@@ -111,7 +111,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--candidate_labels",
         default=None,
-        type=list,
+        type=str,
+        nargs="+",
         required=True,
         help="Candidate labels inserted in prompt_pattern.",
     )
@@ -174,14 +175,12 @@ if __name__ == "__main__":
         "--id_column",
         default="id",
         type=str,
-        action=argparse.BooleanOptionalAction,
         help="name of id dataset column (default: id)",
     )
     parser.add_argument(
         "--text_column",
         default="text",
         type=str,
-        action=argparse.BooleanOptionalAction,
         help="name of text dataset column (default: text)",
     )
 
