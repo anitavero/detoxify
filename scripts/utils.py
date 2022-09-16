@@ -1,7 +1,10 @@
 import os
 import pickle as pkl
+import re
+from glob import glob
 
 import numpy as np
+import webdataset as wds
 
 
 def read_pickle_batches(file_name):
@@ -35,6 +38,24 @@ def load_embeddings(data_file):
         return read_pickle(data_file)
     else:
         raise Exception("Only .pkl embedding file can be loaded")
+
+
+def pickles2webdataset(data_path):
+    """Convert a pickle series file or a directory of pickle serise files to webdataset format."""
+
+    def convert(data_file):
+        ids, embeddings, metadata = read_pickle(data_file)  # TODO: store metadata
+        sink = wds.TarWriter(re.sub(".pkl", ".tar", data_file))
+        for id, emb in zip(ids, embeddings):
+            sink.write({"__key__": id, "embedding.pyd": emb})
+        sink.close()
+
+    if os.path.isdir(data_path):
+        for file in glob(os.path.join(data_path, "*.pkl")):
+            print("Converting", file)
+            convert(file)
+    else:
+        convert(data_path)
 
 
 def ask_to_proceed_with_overwrite(filepath):

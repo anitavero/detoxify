@@ -107,7 +107,7 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="path to dataset csv file. " + DATASET_DESCRIPTION,
-    )
+    )  # TODO: or directory of csv files
     parser.add_argument(
         "--candidate_labels",
         default=None,
