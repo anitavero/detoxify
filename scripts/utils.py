@@ -1,3 +1,4 @@
+from email import message
 import os
 import pickle as pkl
 import re
@@ -40,15 +41,34 @@ def load_embeddings(data_file):
         raise Exception("Only .pkl embedding file can be loaded")
 
 
-def pickles2webdataset(data_path):
-    """Convert a pickle series file or a directory of pickle serise files to webdataset format."""
+def pickles2webdataset(data_file):
+    """Convert a pickle series file to webdataset format."""
+    ids, embeddings, metadata = read_pickle(data_file)  # TODO: store metadata
+    sink = wds.TarWriter(re.sub(".pkl", ".tar", data_file))
+    for id, emb in zip(ids, embeddings):
+        sink.write({"__key__": id, "embedding.pyd": emb})
+    sink.close()
 
-    def convert(data_file):
-        ids, embeddings, metadata = read_pickle(data_file)  # TODO: store metadata
-        sink = wds.TarWriter(re.sub(".pkl", ".tar", data_file))
-        for id, emb in zip(ids, embeddings):
-            sink.write({"__key__": id, "embedding.pyd": emb})
-        sink.close()
+
+def embeddings2pkl(data_file):
+    """Convert a pickle series file to merged pickle format."""
+    ids, embeddings, metadata = read_pickle(data_file)
+    with open(re.sub(".pkl", "_merged.pkl", data_file), 'wb') as f:
+        pkl.dump({'ids': ids,
+                  'embeddings': embeddings,
+                  'metadata': metadata},
+                  f
+                )
+
+
+def convert_pkls_embeddings(data_path, to='pickle'):
+    """Convert a pickle series file or a directory of pickle serise files to pickle or webdataset format."""
+    if to == 'pickle':
+        convert = embeddings2pkl
+    elif to == 'webdataset':
+        convert = pickles2webdataset
+    else:
+        raise Exception("Can only be converted to 'pickle' or 'webdataset'.")
 
     if os.path.isdir(data_path):
         for file in glob(os.path.join(data_path, "*.pkl")):
