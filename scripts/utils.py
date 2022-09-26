@@ -1,7 +1,7 @@
-from email import message
 import os
 import pickle as pkl
 import re
+from email import message
 from glob import glob
 
 import numpy as np
@@ -53,28 +53,25 @@ def pickles2webdataset(data_file):
 def embeddings2pkl(data_file):
     """Convert a pickle series file to merged pickle format."""
     ids, embeddings, metadata = read_pickle(data_file)
-    with open(re.sub(".pkl", "_merged.pkl", data_file), 'wb') as f:
-        pkl.dump({'ids': ids,
-                  'embeddings': embeddings,
-                  'metadata': metadata},
-                  f
-                )
+    with open(re.sub(".pkl", "_merged.pkl", data_file), "wb") as f:
+        pkl.dump({"ids": ids, "embeddings": embeddings, "metadata": metadata}, f)
 
 
-def convert_pkls_embeddings(data_path, to='pickle'):
+def convert_pkls_embeddings(data_path, to="pickle", file_pattern="*"):
     """Convert a pickle series file or a directory of pickle serise files to pickle or webdataset format."""
-    if to == 'pickle':
+    if to == "pickle":
         convert = embeddings2pkl
-    elif to == 'webdataset':
+    elif to == "webdataset":
         convert = pickles2webdataset
     else:
         raise Exception("Can only be converted to 'pickle' or 'webdataset'.")
 
     if os.path.isdir(data_path):
-        for file in glob(os.path.join(data_path, "*.pkl")):
+        for file in glob(os.path.join(data_path, f"*{file_pattern}*.pkl")):
             print("Converting", file)
             convert(file)
     else:
+        print("Converting", data_path)
         convert(data_path)
 
 
